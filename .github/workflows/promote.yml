@@ -1,0 +1,67 @@
+# Promotes an already-released version (already built once, already
+# promoted to a semver image tag and pushed as a chart by release.yml)
+# to staging or production. No build happens here — this only bumps the
+# target environment's values.yaml in the apps repo to the given version
+# and opens a PR. The `environment:` gate below requires approval from the
+# reviewers configured on that GitHub Environment before the job runs at
+# all; merging the resulting PR is what lets ArgoCD sync the environment.
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [staging, production]
+      version:
+        description: "Release version to promote, e.g. v1.2.3"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CHART_NAME: basic-ai-agent
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout apps repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.APPS_REPO }}
+          token: ${{ secrets.APPS_REPO_TOKEN }}
+          path: apps-repo
+
+      - name: Bump target environment values
+        run: |
+          set -euo pipefail
+          cd apps-repo
+          VERSION="${{ inputs.version }}"
+          yq -i ".image.tag = \"$VERSION\"" "environments/${{ inputs.environment }}/values.yaml"
+          yq -i ".chartVersion = \"${VERSION#v}\"" "environments/${{ inputs.environment }}/values.yaml"
+
+      - name: Open promotion PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.APPS_REPO_TOKEN }}
+          path: apps-repo
+          branch: promote/${{ inputs.environment }}-${{ inputs.version }}
+          commit-message: "chore(${{ inputs.environment }}): promote ${{ env.CHART_NAME }} to ${{ inputs.version }}"
+          title: "Promote ${{ inputs.version }} -> ${{ inputs.environment }}"
+          body: |
+            Approved promotion, triggered by @${{ github.actor }} via the
+            `${{ inputs.environment }}` GitHub Environment gate in
+            ${{ github.repository }}.
+
+            * version: `${{ inputs.version }}`
+            * target: `${{ inputs.environment }}`
+
+            Merging this PR lets ArgoCD sync `${{ inputs.environment }}`.
+          labels: automated-release,promotion
+          reviewers: ${{ github.actor }}

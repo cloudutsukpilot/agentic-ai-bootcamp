@@ -1,4 +1,4 @@
-# This placeholder will demonstrate the Microsoft Agent Framework agent class.
+# This entry point demonstrates a structured user message sent to a local agent.
 # asyncio is Python's built-in library for coordinating asynchronous work.
 # Import asyncio to run our agent coroutine on an event loop.
 import asyncio
@@ -73,7 +73,13 @@ async def main() -> None:
                 instructions="You are a helpful agent that explains the Microsoft Agent Framework .",
             )
 
-            user_message = Message(role="user", contents="Explain what is the Message Class in Microsoft Agent Framework with a short description and one example.")
+            # Create a structured message so the speaker role and content items are explicit.
+            user_message = Message(
+                # Identify the human speaker so the framework classifies this input as user content.
+                role="user",
+                # Store the prompt as one text item; the sequence can later contain other content types.
+                contents=["Explain what is the Message Class in Microsoft Agent Framework with a short description and one example."],
+            )
 
             # Await the remote model response without blocking the event loop; this call may incur cost.
             # Create response containing the completed agent result for this single prompt.

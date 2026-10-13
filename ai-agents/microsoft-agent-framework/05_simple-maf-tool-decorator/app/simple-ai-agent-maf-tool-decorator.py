@@ -14,7 +14,7 @@ from pathlib import Path
 # Import FoundryChatClient, an adapter for the project's OpenAI Responses API.
 from agent_framework.foundry import FoundryChatClient
 # Import Agent, the local orchestration object that sends instructions through the client.
-from agent_framework import Agent, Message
+from agent_framework import Agent, Message, tool
 # Azure Identity obtains Entra tokens; access permissions must be assigned separately.
 # Import the asynchronous credential so token acquisition fits this async workflow.
 from azure.identity.aio import DefaultAzureCredential
@@ -22,6 +22,7 @@ from azure.identity.aio import DefaultAzureCredential
 # Import dotenv_values to obtain file settings as a dictionary.
 from dotenv import dotenv_values
 
+from random import randint
 
 # __file__ identifies this script; with_name keeps its folder and replaces the filename.
 # Create settings from the app-local file without printing any configuration values.
@@ -40,6 +41,22 @@ def required_setting(name: str) -> str:
     # Return the validated string to the calling client-configuration code.
     return value
 
+
+@tool
+async def get_weather(location: str) -> str:
+    """Get weather for a location
+
+    Args:
+        location (str): The location to get the weather for.
+
+    Returns:
+        str: A string describing the weather for the given location.
+    """
+    # Simulate fetching weather by returning a random temperature.
+    conditions = ["sunny", "cloudy", "rainy", "snowy"]
+    condition = conditions[randint(0, len(conditions) - 1)]
+    temperature = randint(-10, 35)
+    return f"The current temperature in {location} is {temperature}°C and the weather is {condition}."
 
 # async def defines a coroutine function whose work is driven by an event loop.
 # Define main without parameters; it prints the response and returns no value.
@@ -70,11 +87,13 @@ async def main() -> None:
                 client=chat_client,
                 # Give the local agent a readable name; this is not a deployed resource ID.
                 name="Sample MAF Foundry Agent",
+                description="A sample agent that demonstrates the use of tools in the Microsoft Agent Framework.",
                 # Supply behavior instructions separately from the user's request below.
-                instructions="You are a helpful agent that explains the Microsoft Agent Framework .",
+                instructions="You are a helpful assistance agent that uses the Microsoft Agent Framework with Microsoft Foundary to answer queries.",
+                tools=[get_weather]
             )
 
-            user_message = Message(role="user", content="Explain what is the Message Class in Microsoft Agent Framework with a short description and one example.")
+            user_message = Message(role="user", contents=["What is the weather in India today?"])
 
             # Await the remote model response without blocking the event loop; this call may incur cost.
             # Create response containing the completed agent result for this single prompt.

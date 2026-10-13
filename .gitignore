@@ -4,3 +4,6 @@ __pycache__/
 .venv/
 .env
 venv
+
+# Long Term Memory File Store
+memory_store/

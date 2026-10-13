@@ -23,6 +23,7 @@ from azure.identity.aio import DefaultAzureCredential
 # Import dotenv_values to obtain file settings as a dictionary.
 from dotenv import dotenv_values
 
+# Import randint from Python's standard library to make the weather demo output vary.
 from random import randint
 
 # __file__ identifies this script; with_name keeps its folder and replaces the filename.
@@ -43,8 +44,11 @@ def required_setting(name: str) -> str:
     return value
 
 
+# Use the framework decorator to wrap this function as a model-discoverable tool.
 @tool
+# Define an asynchronous tool with a location input and text result for the agent.
 async def get_weather(location: str) -> str:
+    # Describe the tool so the framework can expose its purpose and parameter to the model.
     """Get weather for a location
 
     Args:
@@ -54,9 +58,13 @@ async def get_weather(location: str) -> str:
         str: A string describing the weather for the given location.
     """
     # Simulate fetching weather by returning a random temperature.
+    # Create conditions containing the weather labels this demo can report.
     conditions = ["sunny", "cloudy", "rainy", "snowy"]
+    # Select one weather label using a random valid list index.
     condition = conditions[randint(0, len(conditions) - 1)]
+    # Create temperature containing a random Celsius value for the response.
     temperature = randint(-10, 35)
+    # Return the tool result that the agent can use when composing its answer.
     return f"The current temperature in {location} is {temperature}°C and the weather is {condition}."
 
 # async def defines a coroutine function whose work is driven by an event loop.
@@ -88,29 +96,43 @@ async def main() -> None:
                 client=chat_client,
                 # Give the local agent a readable name; this is not a deployed resource ID.
                 name="Sample MAF Foundry Agent",
+                # Describe the local agent's purpose for the framework metadata.
                 description="A sample agent that demonstrates the use of tools in the Microsoft Agent Framework.",
                 # Supply behavior instructions separately from the user's request below.
                 instructions="You are a helpful assistance agent that uses the Microsoft Agent Framework with Microsoft Foundary to answer queries.",
+                # Register the decorated function so the model can request it during a run.
                 tools=[get_weather]
             )
+            # Create one in-process session so later runs can receive earlier conversation turns.
             agent_session=agent.create_session()
 
+            # Create the first structured user message that starts the conversation context.
             user_message1 = Message(role="user", contents=["Give me 5 bullet points about India"])
+            # Send the first message through the shared session and await the completed model response.
             response1 = await agent.run(user_message1, session=agent_session)
+            # Print a label so the first response is easy to distinguish in the terminal.
             print("---------- Response 1 ---------- ")
+            # Print only the first response text, not credentials or request metadata.
             print(response1.text)
+            # Print a closing label for the first response block.
             print("---------- End of Response 1 ---------- ")
+            # Create a follow-up message whose wording depends on the first response's context.
             user_message2 = Message(role="user", contents=["Add one line description to the each of those bullet points."])
+            # Send the follow-up through the same session so earlier turns remain available.
             response2 = await agent.run(user_message2, session=agent_session)
+            # Print a label so the second response is easy to distinguish in the terminal.
             print("---------- Response 2 ---------- ")
+            # Print only the second response text generated with the shared conversation context.
             print(response2.text)
+            # Print a closing label for the second response block.
             print("---------- End of Response 2 ---------- ")
 
-            # Await the remote model response without blocking the event loop; this call may incur cost.
-            # Create response containing the completed agent result for this single prompt.
+            # Create the final structured message asking the agent to summarize the accumulated context.
             user_message3 = Message(role="user", contents=["Summarize all the above information in one paragraph."])
+            # Await the third remote response without blocking the event loop; this call may incur cost.
+            # Create response containing the completed agent result for the shared session's final turn.
             response3 = await agent.run(user_message3, session=agent_session)
-            # Print only the response text, never tokens or credential configuration.
+            # Print only the final response text, never tokens or credential configuration.
             print(response3.text)
 
 

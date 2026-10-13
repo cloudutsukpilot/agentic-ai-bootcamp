@@ -1,1 +1,4 @@
 # Dependencies for this learning stage will be added with the implementation.
+agent-framework-foundry
+azure-identity
+python-dotenv

@@ -14,6 +14,7 @@ on 2026-10-13. Online documentation can evolve independently.
   - [Foundry client versus local agent](#foundry-client-versus-local-agent)
   - [Instructions versus user prompts](#instructions-versus-user-prompts)
   - [Messages as structured conversation items](#messages-as-structured-conversation-items)
+    - [Short-term conversation sessions](#short-term-conversation-sessions)
   - [Explicit agent composition](#explicit-agent-composition)
   - [Tools and orchestration](#tools-and-orchestration)
   - [Function tools and the `@tool` decorator](#function-tools-and-the-tool-decorator)
@@ -194,6 +195,64 @@ itself.
 
 - [Microsoft Agent Framework documentation](https://learn.microsoft.com/en-us/agent-framework/).
 <!-- markdownlint-disable-next-line MD013 -->
+- [Microsoft Agent Framework source repository](https://github.com/microsoft/agent-framework) (installed APIs may differ from upstream).
+
+### Short-term conversation sessions
+
+#### What it means
+
+`agent.create_session()` creates an `AgentSession` value that an application
+can pass to later `agent.run(..., session=session)` calls. Reusing the same
+session gives those runs a shared conversation context for the lifetime of the
+configured workflow. The session is an application-held object; creating it
+does not provision a hosted agent or automatically write a durable transcript.
+
+#### Example
+
+**Project excerpt; it requires a configured agent and makes live model calls:**
+
+```python
+# Create one local session for this conversation.
+session = agent.create_session()
+# Send the first turn through the session.
+first_response = await agent.run(Message(role="user", contents=["List five facts about India."]), session=session)
+# Reuse the same session so the follow-up can refer to the first turn.
+second_response = await agent.run(Message(role="user", contents=["Summarize those facts."]), session=session)
+```
+
+The application controls the session lifetime. Creating a different session
+isolates another conversation; omitting the session from a later run does not
+select the earlier session. Context limits, history handling, and model token
+cost still apply. Restart persistence, retention, user-to-session mapping, and
+database storage require additional application design and are not supplied by
+`create_session()` alone.
+
+#### Where it is used
+
+- [Create the short-term session](../ai-agents/microsoft-agent-framework/06_simple-maf-short-term-memory/app/simple-ai-agent-maf-short-term-memory.py#L106-L107).
+- [Reuse the session for three messages](../ai-agents/microsoft-agent-framework/06_simple-maf-short-term-memory/app/simple-ai-agent-maf-short-term-memory.py#L109-L135).
+
+#### Why it is used here
+
+Stage 06 uses one session so the second prompt can refer to "those bullet
+points" and the third can summarize "all the above information." The earlier
+stages already supported the `Agent` and `Message` APIs; this stage activates
+the session mechanism and makes its lifetime visible. This is short-term
+conversation context, not long-term memory, retrieval, MCP, or an observability
+store.
+
+#### Common misunderstanding
+
+Session support is an `Agent` capability, not a benefit exclusive to direct
+construction or to a convenience factory. Both construction paths can create
+an `Agent` that supports sessions when the installed SDK exposes that API.
+Sharing a `FoundryChatClient` is not the same as sharing an `AgentSession`, and
+sharing a session is not permission to access another user's data. The
+application must choose the correct session boundary and persistence policy.
+
+#### References
+
+- [Agent Framework sessions documentation](https://learn.microsoft.com/en-us/agent-framework/agents/).
 - [Microsoft Agent Framework source repository](https://github.com/microsoft/agent-framework) (installed APIs may differ from upstream).
 
 ## Tools and orchestration

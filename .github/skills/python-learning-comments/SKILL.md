@@ -1,6 +1,6 @@
 ---
 name: python-learning-comments
-description: 'Use whenever creating, editing, fixing, refactoring, reviewing, or explaining Python or AI agent code in this repository. Explain Python syntax and agent logic with beginner-friendly comments. Record learnings in topic-specific Python, AI, Azure, or other concept guides with cross-links for overlaps, and validate missing comments after every Python change.'
+description: 'Use whenever creating, editing, fixing, refactoring, reviewing, or explaining Python or AI agent code in this repository. Add beginner-friendly what-and-why comments and route concepts to canonical guides. After every Python edit, reread saved files, verify comment meaning and behavior preservation, run the existing placement checker, and report validation evidence and blocked checks.'
 ---
 
 # Learn Python as you code
@@ -27,6 +27,36 @@ description: 'Use whenever creating, editing, fixing, refactoring, reviewing, or
   topic-specific concept guides using the routing rules below.
    This also applies to concept-explanation questions without a code change.
 7. Report validation results and any blocked checks honestly.
+
+### Scope and preservation baseline
+
+Inspect current files and relevant worktree differences before editing. Record
+the exact Python paths and whether the task is comment-only or behavior-changing.
+Preserve user edits; compare against current pre-edit contents, not just `HEAD`.
+If Git is unavailable, use direct inspection and report the limitation.
+
+Keep accurate existing comments; add/update missing or stale explanations.
+Full-file coverage remains required for touched Python files, but do not rewrite
+correct comments merely for style or expand scope to unrelated files. Apply the
+user's documentation scope before updating guides. Existing sample READMEs follow
+the preservation rules in
+[agent-sample-readme](../agent-sample-readme/SKILL.md); do not regenerate them
+as a side effect of Python comment work.
+
+### Teach intent without repetitive boilerplate
+
+Each meaningful line still needs its preceding comment. Explain **what** the
+line does and connect significant operations to **why** this sample needs them.
+Define concepts at first relevant use; later comments can explain the specific
+action without repeating the entire definition. Avoid generic explanations
+such as "call the function" when a concrete responsibility can be named.
+
+For agent setup and execution, identify actual responsibility boundaries:
+configuration supplies values, credentials authenticate, clients communicate,
+agents coordinate behavior, and invocation produces output when supported by
+the code. Do not imply every constructor makes a network call. For a new
+abstraction, explain its concrete mechanism and purpose, or label it an
+educational alternative rather than an automatic capability gain.
 
 ## Concept guides: explain, demonstrate, connect to real code
 
@@ -228,6 +258,46 @@ Useful first-party references (verify APIs against the sample's SDK version):
 - [Microsoft Agent Framework documentation](https://learn.microsoft.com/en-us/agent-framework/)
 - [DefaultAzureCredential reference](https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.defaultazurecredential?view=azure-python)
 - [Application Insights with OpenTelemetry](https://learn.microsoft.com/en-us/azure/azure-monitor/app/opentelemetry-enable)
+
+## Post-edit acceptance gate — verify the final files
+
+After every creation/update, reread the saved Python files, not just the patch.
+Apply these checks to every changed Python file, including helpers and tests:
+
+1. **Placement (automated):** run the existing checker with explicit paths to
+  all task-changed Python files, using the verified project interpreter
+  executable rather than an unverified shell alias. Record the command, exit
+  code, and file coverage; rerun after corrections for the final versions.
+2. **Meaning (model review):** check every new/changed comment against its next
+  line and surrounding flow. Verify creation versus updates, parameters versus
+  variables, imported library roles, async semantics, actual SDK symbols, and
+  what/why explanations. Check other affected comments for newly stale claims.
+  Placement success is not evidence of semantic accuracy.
+3. **Behavior preservation:** for comment-only edits, compare executable code
+  with the current pre-edit baseline. Use AST comparison when practical; inspect
+  literals, annotations, decorators, argument values/order, indentation, and
+  entry guards. AST equality does not validate comment-based type-ignore, lint,
+  encoding, or coverage directives. Preserve directives; explain necessary
+  continuation-format changes and verify equivalent behavior.
+4. **Python validity:** the checker parses syntax but does not resolve imports
+  or types. Inspect relevant editor diagnostics and run configured safe
+  type/behavior checks when applicable. Separate pre-existing failures from
+  task-introduced ones. Report missing tools and unsafe/skipped checks honestly;
+  do not execute a model-calling sample merely to validate its comments.
+5. **Learning docs (when in scope):** verify concept ownership, examples, local
+  and cross-guide links, anchors, and refreshed source ranges. Inspect target
+  lines for the claimed symbol. Record when no new concept was introduced or
+  docs were excluded; do not create empty guides for checklist completeness.
+6. **Scope and consistency:** review the task diff for preserved user changes,
+  accidental code/data edits, secrets, unrelated files, and contradictions.
+  Repeat affected checks after fixes; do not reuse stale validation results.
+
+Summarize **Check / Result / Evidence** using `PASS`, `FAIL`, `BLOCKED`,
+`NOT RUN`, or `N/A` with a reason. Include interpreter, changed-file coverage,
+automated results, model-review findings, and intentionally skipped external
+calls. Fix task-introduced failures before claiming completion; qualify results
+when required checks are blocked. These rules require explicit agent review;
+they do not install automatic hooks or CI.
 
 ## Validation boundaries
 

@@ -8,13 +8,13 @@ import os
 # Import Path to locate the configuration file beside this script.
 from pathlib import Path
 
-# Agent Framework orchestrates agents; Foundry provides the remote model service.
+# Third-party Agent Framework orchestrates agents; Foundry serves the deployed model.
 # Import FoundryChatClient, an adapter for the project's OpenAI Responses API.
 from agent_framework.foundry import FoundryChatClient
-# Azure Identity obtains Entra tokens; access permissions must be assigned separately.
+# Third-party Azure Identity obtains Entra tokens; permissions are assigned separately.
 # Import the asynchronous credential so token acquisition fits this async workflow.
 from azure.identity.aio import DefaultAzureCredential
-# python-dotenv parses configuration without exporting it to the process environment.
+# Third-party python-dotenv parses configuration without changing the process environment.
 # Import dotenv_values to obtain file settings as a dictionary.
 from dotenv import dotenv_values
 
@@ -24,7 +24,7 @@ from dotenv import dotenv_values
 settings = dotenv_values(dotenv_path=Path(__file__).with_name(".env"))
 
 
-# A helper function centralizes lookup and validation for required configuration.
+# A function is reusable code; this helper centralizes required-setting checks.
 # Define required_setting with a string name parameter and a string return annotation.
 def required_setting(name: str) -> str:
     # Create value from the nonempty environment setting, otherwise the file dictionary.
@@ -60,7 +60,7 @@ async def main() -> None:
         )
         # Close both the Azure project and OpenAI HTTP clients when this scope ends.
         async with client.project_client, client.client:
-            # Create agent locally with this client and instructions for model behavior.
+            # Create agent via as_agent, a local Agent factory using this client and instructions.
             agent = client.as_agent(
                 # Give the local agent a readable name; this is not a deployed resource ID.
                 name="Sample MAF Foundry Agent",
@@ -68,7 +68,7 @@ async def main() -> None:
                 instructions="You are a helpful agent that explains the Microsoft Agent Framework.",
             )
 
-            # Await the remote model response without blocking the event loop; this call may incur cost.
+            # Await model I/O without starting a thread; the remote request may incur cost.
             # Create response containing the completed agent result for this single prompt.
             response = await agent.run("Explain what the Microsoft Agent Framework is in one sentence.")
             # Print only the response text, never tokens or credential configuration.

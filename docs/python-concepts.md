@@ -7,6 +7,9 @@ explanation, follow the source links, and see why the concept is used there.
 Examples marked **illustrative** are small learning examples, not application
 code; they do not require Azure credentials or make model requests.
 
+Agent behavior belongs in [AI concepts](./ai-concepts.md); service configuration
+and identity belong in [Azure concepts](./azure-concepts.md).
+
 ## Contents
 
 - [Functions and typing](#functions-and-typing)
@@ -16,6 +19,7 @@ code; they do not require Azure credentials or make model requests.
   - [Coroutines and async def](#coroutines-and-async-def)
   - [async def versus asyncio.run](#async-def-versus-asynciorun)
   - [Await](#await)
+  - [Async context managers](#async-context-managers)
 - [Objects and methods](#objects-and-methods)
   - [Objects, methods, and assignment](#objects-methods-and-assignment)
 - [AI agent architecture](#ai-agent-architecture)
@@ -30,45 +34,9 @@ Client configuration and agent behavior are separate responsibilities.
 
 ### Foundry client versus local agent
 
-#### What it means
-
-`FoundryChatClient` adapts Microsoft Agent Framework to a Foundry project's
-OpenAI Responses API. `client.as_agent(...)` creates a local framework agent
-using that client and instructions; it does not deploy a hosted agent resource.
-The model argument identifies a model deployment and the project endpoint
-identifies the Foundry project.
-
-#### Example
-
-**Project excerpt; assumes the configured client already exists:**
-
-```python
-# Create a local agent using this project's model client and behavior instructions.
-agent = client.as_agent(
-    # Supply a readable name, not a remote resource ID.
-    name="Sample MAF Foundry Agent",
-    # Supply behavior instructions independently of a later user prompt.
-    instructions="You are a helpful agent that explains the Microsoft Agent Framework.",
-)
-```
-
-#### Where it is used
-
-[Client construction and local agent creation](../ai-agents/microsoft-agent-framework/simple-maf-foundary/app/simple-ai-agent-maf-foundary.py#L51-L69).
-
-#### Why it is used here
-
-This sample runs locally and sends one prompt to a remote model. The original
-`FOUNDARY_MODEL` and `FOUNDARY_ENDPOINT` configuration names are retained for
-compatibility and passed explicitly to the SDK. No tools, persistent memory,
-hosted deployment, or Application Insights setup is implemented here.
-
-#### Common misunderstanding
-
-Foundry service access is not the same as hosting the Python agent in Foundry.
-Constructing a client or calling `as_agent` does not send the prompt; the awaited
-`agent.run` does. See the [framework documentation](https://learn.microsoft.com/en-us/agent-framework/)
-and verify signatures against the installed SDK version.
+This heading is retained for existing links. The canonical explanation is now
+[Foundry client versus local agent](./ai-concepts.md#foundry-client-versus-local-agent).
+For Python method-call syntax, see [objects and methods](#objects-methods-and-assignment).
 
 ## Identity and access
 
@@ -77,51 +45,9 @@ may access. Client lifetime management releases resources after the work ends.
 
 ### Async credentials and resource cleanup
 
-#### What it means
-
-`DefaultAzureCredential` is a concrete Azure Identity credential that tries
-supported identity sources when an Entra token is needed. `TokenCredential`
-describes a credential interface, not a concrete login implementation. The
-`azure.identity.aio` variant supports asynchronous token acquisition.
-
-`async with` manages an asynchronous context: entry prepares a resource and
-exit releases it even if the body raises an exception. Creating a credential
-does not grant permissions or guarantee that token acquisition will succeed.
-
-#### Example
-
-**Illustrative offline lifecycle example; no token or model request:**
-
-```python
-# Import the asynchronous Azure Identity credential class.
-from azure.identity.aio import DefaultAzureCredential
-
-# Define a coroutine that demonstrates credential transport cleanup.
-async def credential_lifecycle() -> None:
-    # Create and automatically close a credential without requesting a token.
-    async with DefaultAzureCredential() as credential:
-        # Check that the credential has the expected token-acquisition method.
-        assert callable(credential.get_token)
-```
-
-#### Where it is used
-
-- [Import the async credential](../ai-agents/microsoft-agent-framework/simple-maf-foundary/app/simple-ai-agent-maf-foundary.py#L14-L16).
-- [Manage credential, project, and HTTP client lifetimes](../ai-agents/microsoft-agent-framework/simple-maf-foundary/app/simple-ai-agent-maf-foundary.py#L49-L62).
-
-#### Why it is used here
-
-The agent needs a concrete credential instead of an undefined `TokenCredential()`.
-The asynchronous credential fits the async SDK client. Context managers close
-the OpenAI client, Azure project client, and credential on success or failure.
-The identity still needs appropriate Foundry access permissions.
-
-#### Common misunderstanding
-
-A token proves identity but does not automatically authorize every operation.
-Neither credentials nor cleanup enable Application Insights. Consult the
-[credential reference](https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.aio.defaultazurecredential?view=azure-python)
-and [async context-manager specification](https://docs.python.org/3/reference/compound_stmts.html#the-async-with-statement).
+This heading is retained for existing links. Azure credential behavior now lives
+in [async credentials and resource cleanup](./azure-concepts.md#async-credentials-and-resource-cleanup).
+Python lifecycle syntax lives in [async context managers](#async-context-managers).
 
 ## Functions and typing
 
@@ -167,9 +93,10 @@ whether a deployment exists.
 
 #### Where it is used
 
-- [Parse file configuration without exporting environment variables](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L19-L21).
-- [Define the helper and its validation](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L24-L34).
-- [Reuse it for three client settings](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L40-L48).
+- [Parse file configuration without exporting environment variables](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L19-L21).
+- [Define the helper and its validation](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L24-L34).
+- [Reuse it for three client settings](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L40-L48).
+- [Stage 02 uses the same fallback policy with ValueError](../ai-agents/microsoft-agent-framework/02_simple-maf-foundary/app/simple-ai-agent-maf-foundary.py#L27-L37).
 
 #### Why it is used here
 
@@ -178,6 +105,10 @@ automatically in `os.environ`. Using only `os.getenv` would miss file-only
 configuration. The helper centralizes file fallback, precedence, and immediate
 missing-setting errors for all three required values. Successful calls return
 a string, making client setup clearer for both readers and type checkers.
+
+References: [os.getenv](https://docs.python.org/3/library/os.html#os.getenv),
+[Boolean operations](https://docs.python.org/3/library/stdtypes.html#boolean-operations-and-or-not),
+and [python-dotenv](https://bbc2.github.io/python-dotenv/).
 
 #### Common misunderstanding
 
@@ -243,9 +174,9 @@ the other task run. Do not rely on finish-order timing as a general guarantee.
 
 #### Where it is used
 
-- [Start the sample's event loop](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L67-L69).
-- [Define the main coroutine](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L37-L39).
-- [Wait for the agent response](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L58-L62).
+- [Start the sample's event loop](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L67-L69).
+- [Define the main coroutine](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L37-L39).
+- [Wait for the agent response](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L58-L62).
 
 #### Why it is used here
 
@@ -288,8 +219,8 @@ object; `asyncio.run(main())` drives that object to completion.
 
 #### Where it is used
 
-- [The actual main definition and client setup](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L37-L48).
-- [Pass main's coroutine to asyncio.run](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L67-L69).
+- [The actual main definition and client setup](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L37-L48).
+- [Pass main's coroutine to asyncio.run](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L67-L69).
 
 #### Why it is used here
 
@@ -345,8 +276,8 @@ requires one.
 
 #### Where it is used
 
-- [Define the sample's asynchronous main function](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L37-L39).
-- [Run main from the script-entry guard](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L67-L69).
+- [Define the sample's asynchronous main function](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L37-L39).
+- [Run main from the script-entry guard](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L67-L69).
 
 #### Why it is used here
 
@@ -390,8 +321,9 @@ model charges; it is not needed for learning the control flow.
 
 #### Where it is used
 
-- [Create the agent used by the awaited call](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L50-L56).
-- [Await the response, then print its text](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L58-L62).
+- [Create the agent used by the awaited call](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L50-L56).
+- [Await the response, then print its text](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L58-L62).
+- [Stage 02's awaited run and text output](../ai-agents/microsoft-agent-framework/02_simple-maf-foundary/app/simple-ai-agent-maf-foundary.py#L71-L77).
 
 #### Why it is used here
 
@@ -405,6 +337,47 @@ the library's asynchronous network operations.
 not automatically run the next line concurrently or create another thread.
 Awaiting an operation that is already complete may not yield control at all.
 Related: [event loop](#event-loop) and [coroutines](#coroutines-and-async-def).
+
+### Async context managers
+
+#### What it means
+
+`async with` enters an asynchronous context manager, runs its body, then awaits
+its exit operation even when the body raises an exception. For these SDK clients,
+exit releases network transports. Multiple managers enter left to right and exit
+right to left; it is resource management, not parallel execution.
+
+#### Example
+
+**Project excerpt; assumes the configured client exists:**
+
+```python
+# Enter project and HTTP client scopes; exit closes HTTP first, then project.
+async with client.project_client, client.client:
+  # The real body creates and runs the local agent before these scopes exit.
+  ...
+```
+
+This shortened excerpt is illustrative and unexecuted on its own. The outer
+credential scope surrounds this one and exits last.
+
+#### Where it is used
+
+- [Credential scope](../ai-agents/microsoft-agent-framework/02_simple-maf-foundary/app/simple-ai-agent-maf-foundary.py#L49-L51).
+- [Client scopes](../ai-agents/microsoft-agent-framework/02_simple-maf-foundary/app/simple-ai-agent-maf-foundary.py#L61-L62).
+
+#### Why it is used here
+
+The script must release the clients after its single run, including if the run
+fails. It avoids repeating cleanup in success and error paths. Azure-specific
+identity behavior belongs in [the Azure guide](./azure-concepts.md#async-credentials-and-resource-cleanup).
+
+#### Common misunderstanding
+
+A context manager does not itself authenticate or grant permissions, and not
+every object supports this protocol. See the official
+[async with specification](https://docs.python.org/3/reference/compound_stmts.html#the-async-with-statement)
+and [asyncio runners](https://docs.python.org/3/library/asyncio-runner.html).
 
 ## Objects and methods
 
@@ -444,9 +417,9 @@ it does not turn the existing client variable into an agent or send the prompt.
 
 #### Where it is used
 
-- [Create the client object](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L40-L48).
-- [Call as_agent and assign its result](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L50-L56).
-- [Run the resulting agent](../ai-agents/microsoft-agent-framework/simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L58-L62).
+- [Create the client object](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L40-L48).
+- [Call as_agent and assign its result](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L50-L56).
+- [Run the resulting agent](../ai-agents/microsoft-agent-framework/01_simple-maf-openai/app/simple-ai-agent-maf-azopenai.py#L58-L62).
 
 #### Why it is used here
 

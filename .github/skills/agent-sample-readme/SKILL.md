@@ -1,6 +1,6 @@
 ---
 name: agent-sample-readme
-description: 'Create or update a README for an AI agent learning sample in this repository. Use for documenting sample folders, framework/provider comparisons, setup and run commands, tools, MCP, short-term or persistent memory, and learning-stage progression. Ground every claim in the sample source and keep planned features separate from implemented capabilities.'
+description: 'Create, enrich, or review an AI agent sample README. Preserve existing content while adding concise beginner explanations of what the code does and why, with source-grounded stage comparisons, setup, tools, MCP, and memory. Verify saved files, links, claims, and preservation after every edit; keep planned features separate from implemented capabilities.'
 ---
 
 # Agent sample README
@@ -16,6 +16,25 @@ case; never create a second README differing only in case.
 Learning stage, SDK package version, and model/deployment identity are different
 things. Record them separately. Never invent model names, tested versions, sibling
 folders, tests, or capabilities.
+
+## Existing READMEs — preserve and enrich
+
+- Inspect current contents and relevant worktree differences before editing,
+   including uncommitted user changes. Use the current pre-edit file, not only
+   `HEAD`, as the preservation baseline. For untracked files, inspect contents
+   directly; Git diffs omit them. If Git is unavailable, report the limitation.
+- Keep existing wording, headings, order, tables, examples, and working commands.
+   Add missing explanations in the closest relevant section; add a short section
+   only when none fits. Do not regenerate, reformat, or restructure for consistency.
+- Small source-verified factual corrections and affected stale links are allowed.
+   Record the correction and evidence. Ask before substantial removal,
+   restructuring, changes to learning intent, or uncertain corrections. Follow
+   stricter user requests such as append-only or exact-wording preservation.
+- The required sections below are a coverage guide, not a layout migration for
+   existing READMEs. Reuse equivalent sections; do not duplicate explanations.
+   New READMEs should use applicable sections without inventing filler.
+- Editing this skill alone does not authorize sample README or concept-guide
+   edits. Leave application code, dependencies, and unrelated docs untouched.
 
 ## Workflow — inspect, write, verify
 
@@ -33,9 +52,9 @@ folders, tests, or capabilities.
    or library documentation. Treat upstream main/latest APIs as potentially
    different from the installed version. Record the date and interpreter for
    validation evidence; distinguish observed versions from unpinned requirements.
-4. Write the README in the target sample folder using the sections below. Adapt
-   to the implementation rather than copying irrelevant instructions from other
-   stages. Use beginner-friendly explanations and relative local links.
+4. Create or enrich the README using the preservation rules and coverage guide.
+   Explain what and why from source evidence, not irrelevant stage templates.
+   Use beginner-friendly explanations and relative local links.
 5. Validate local links, heading anchors, source line ranges, command working
    directories, and configuration names. Inspect syntax of shell examples and
    run safe checks with the sample interpreter. Do not reinstall dependencies,
@@ -43,6 +62,32 @@ folders, tests, or capabilities.
    model requests merely to validate documentation. Label checks not executed.
 6. Report files written, verified checks, and any remaining limitations. Review
    README accuracy after later changes to this sample's code or manifest.
+
+## Explain what we are doing and why
+
+For each new learning objective or significant construct, add concise answers
+in the relevant existing section, with verified source links:
+
+1. **What:** the operation, its input, and its observable result.
+2. **How:** the actual responsible symbol and its place in execution order.
+   Distinguish local setup from network requests and potentially paid operations.
+3. **Why here:** the concrete problem/responsibility it addresses in this sample,
+   not only a generic definition. Briefly define new jargon.
+4. **Benefit and limits:** explain the technical mechanism and one practical use
+   case. State whether the benefit is a runtime capability, design choice, or
+   educational step; do not invent exclusive gains or unsupported benefits.
+5. **Status:** distinguish implemented behavior, SDK-supported but unconfigured
+   extensions, and future plans. State relevant prerequisites and boundaries.
+
+When comparing stages, inspect the relevant prerequisite/comparison sample;
+folder numbering alone does not establish a dependency. Explain what it already
+did, what changed, the new responsibility, and a concrete reason for the change.
+Use the counterfactual internally: could the earlier API do the same thing?
+Acknowledge parity concisely when supported, rather than inventing improvements.
+Use a compact previous/current/reason table when helpful; preserve equivalent
+existing explanations. For standalone samples, explain the objective without
+inventing a previous stage. The capabilities table describes implementation
+status; the what/why explanation describes learning and design intent.
 
 ## Required README sections
 
@@ -107,3 +152,29 @@ folders, tests, or capabilities.
 - **Other framework/provider variants:** what changed and what stayed the same,
   separate authentication/configuration/API requirements, and actual supported
   capabilities. Do not assume an OpenAI-compatible endpoint supports every API.
+
+## Post-edit acceptance gate — review the saved file
+
+After every creation/update, reread the saved README and inspect its task diff
+against the pre-edit contents. Repeat affected checks after corrections; intended
+edits or an earlier draft are not evidence about the final file.
+
+| Check | Required verification |
+| --- | --- |
+| Preservation and scope | Retain existing content and user edits; justify factual corrections/removals. No unrelated edits or layout churn. |
+| What and why | Model review: explain each new objective's operation, responsible symbol, concrete rationale, practical use case, and relevant limits. Define jargon for beginners. |
+| Source grounding | Model review against source/manifests: verify roles, capabilities, configuration precedence, commands, versions, and stage deltas. Mark unknowns rather than guessing. |
+| Local links | Resolve relative to the README; check files, heading anchors including duplicate headings, and source line-range bounds. Inspect target lines for the claimed symbol, not just range existence. |
+| Examples and safety | Check shell, working directory, interpreter and placeholder configuration. Distinguish illustrative output from observed output. Do not run setup, side-effecting imports, or live requests just to validate prose. |
+| Markdown and consistency | Check fences, headings, lists, tables, contradictions, and duplicated explanations. Review rendering when available; state when only source was inspected. |
+
+These are mandatory agent checks, not automatic editor-save hooks or CI gates.
+Use available safe tools for mechanical checks; otherwise inspect explicitly and
+label the evidence as manual/model review. Link checks do not prove educational
+quality, SDK semantics, or runtime success.
+
+Report **Check / Result / Evidence** using `PASS`, `FAIL`, `BLOCKED`, `NOT RUN`,
+or `N/A` with a reason, affected paths, and actual commands/inspections. Fix
+task-introduced failures before completion; separate pre-existing problems.
+Blocked required verification means qualified completion, not a full pass.
+Keep volatile validation logs in the task response, not the README, unless asked.

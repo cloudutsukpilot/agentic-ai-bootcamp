@@ -22,6 +22,7 @@ from azure.identity.aio import DefaultAzureCredential
 # Import dotenv_values to obtain file settings as a dictionary.
 from dotenv import dotenv_values
 
+# Import randint from Python's standard library to make the weather demo output vary.
 from random import randint
 
 # __file__ identifies this script; with_name keeps its folder and replaces the filename.
@@ -42,8 +43,11 @@ def required_setting(name: str) -> str:
     return value
 
 
+# Use the framework decorator to wrap this function as a model-discoverable tool.
 @tool
+# Define an asynchronous tool with a location input and text result for the agent.
 async def get_weather(location: str) -> str:
+    # Document the tool's purpose and parameter so the decorator can describe it to the model.
     """Get weather for a location
 
     Args:
@@ -53,9 +57,13 @@ async def get_weather(location: str) -> str:
         str: A string describing the weather for the given location.
     """
     # Simulate fetching weather by returning a random temperature.
+    # Create conditions containing the weather labels this demo can report.
     conditions = ["sunny", "cloudy", "rainy", "snowy"]
+    # Select one weather label using a random valid list index.
     condition = conditions[randint(0, len(conditions) - 1)]
+    # Create temperature containing a random Celsius value for the response.
     temperature = randint(-10, 35)
+    # Return the tool result that the agent can use when composing its answer.
     return f"The current temperature in {location} is {temperature}°C and the weather is {condition}."
 
 # async def defines a coroutine function whose work is driven by an event loop.
@@ -87,12 +95,15 @@ async def main() -> None:
                 client=chat_client,
                 # Give the local agent a readable name; this is not a deployed resource ID.
                 name="Sample MAF Foundry Agent",
+                # Describe the sample's purpose for the agent configuration metadata.
                 description="A sample agent that demonstrates the use of tools in the Microsoft Agent Framework.",
                 # Supply behavior instructions separately from the user's request below.
                 instructions="You are a helpful assistance agent that uses the Microsoft Agent Framework with Microsoft Foundary to answer queries.",
+                # Register the decorated function so the model can request it during a run.
                 tools=[get_weather]
             )
 
+            # Create a structured user message whose contents ask for weather in India.
             user_message = Message(role="user", contents=["What is the weather in India today?"])
 
             # Await the remote model response without blocking the event loop; this call may incur cost.

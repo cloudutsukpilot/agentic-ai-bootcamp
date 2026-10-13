@@ -13,7 +13,10 @@ on 2026-10-13. Online documentation can evolve independently.
 - [Agent architecture](#agent-architecture)
   - [Foundry client versus local agent](#foundry-client-versus-local-agent)
   - [Instructions versus user prompts](#instructions-versus-user-prompts)
+  - [Messages as structured conversation items](#messages-as-structured-conversation-items)
   - [Explicit agent composition](#explicit-agent-composition)
+  - [Tools and orchestration](#tools-and-orchestration)
+  - [Function tools and the `@tool` decorator](#function-tools-and-the-tool-decorator)
 
 ## Agent architecture
 
@@ -76,6 +79,7 @@ by this factory. For Python method-call semantics see
 #### References
 
 - [Official Foundry model-provider documentation](https://learn.microsoft.com/en-us/agent-framework/integrations/by-component/model-providers/microsoft-foundry?pivots=programming-language-python).
+<!-- markdownlint-disable-next-line MD013 -->
 - [Microsoft Agent Framework source](https://github.com/microsoft/agent-framework) (upstream may differ from installed versions).
 - [Project endpoints and deployments](./azure-concepts.md#foundry-project-endpoints-and-deployments).
 
@@ -94,7 +98,9 @@ compliance with every instruction.
 
 ```python
 # Ask this run's specific question and await its completed response.
-response = await agent.run("Explain what the Microsoft Agent Framework is in one sentence.")
+response = await agent.run(
+    "Explain what the Microsoft Agent Framework is in one sentence."
+)
 # Display the generated text after the run completes.
 print(response.text)
 ```
@@ -123,6 +129,158 @@ that the application enables a capability.
 
 - [Your first Agent Framework agent](https://learn.microsoft.com/en-us/agent-framework/get-started/your-first-agent).
 - [Python await](./python-concepts.md#await).
+
+### Messages as structured conversation items
+
+#### What it means
+
+`Message` is the installed framework's structured representation of one chat
+item. Its `role` identifies the author, such as `user`, `assistant`, `system`,
+or `tool`; its `contents` sequence stores text or other supported content
+objects. The `text` property joins the text content items. Optional
+`author_name`, `message_id`, and `additional_properties` carry attribution and
+local workflow metadata.
+
+#### Example
+
+**Project excerpt; it constructs a local object and does not call the model:**
+
+```python
+# Import the framework's message value object.
+from agent_framework import Message
+
+# Represent one human request with an explicit role and text content item.
+user_message = Message(
+    # Identify the speaker for this conversation item.
+    role="user",
+    # Store text in the content sequence used by the framework.
+    contents=["Explain structured messages."],
+)
+```
+
+The earlier string shorthand, `await agent.run("Explain structured messages.")`,
+can still produce a response. The structured form makes the conversation
+boundary explicit and leaves room for roles, mixed content, metadata, and
+serialization. Those extensions require explicit application code and suitable
+model/provider support.
+
+#### Where it is used
+
+- [Import `Message`](../ai-agents/microsoft-agent-framework/04_simple-maf-messageclass/app/simple-ai-agent-maf-messageclass.py#L16).
+- [Construct the user message](../ai-agents/microsoft-agent-framework/04_simple-maf-messageclass/app/simple-ai-agent-maf-messageclass.py#L77).
+- [Pass the message to the agent](../ai-agents/microsoft-agent-framework/04_simple-maf-messageclass/app/simple-ai-agent-maf-messageclass.py#L86).
+- [Compare with stage 03's string input](../ai-agents/microsoft-agent-framework/03_simple-maf-agentclass/app/simple-ai-agent-maf-agentclass.py#L78).
+
+#### Why it is used here
+
+Stage 04 teaches the input data model while preserving stage 03's client,
+agent, authentication, one-shot execution, and text output. A structured
+message is useful when an application must distinguish human input from system
+instructions or tool results, attach correlation metadata, or pass more than
+one supported content item. It does not itself provide conversation memory:
+history requires deliberate session reuse, and restart persistence requires a
+separate storage strategy.
+
+#### Common misunderstanding
+
+`Message` is a local value object, not the model, a hosted agent resource, or a
+durable database record. A bare string remains a valid run input in the
+installed API, so constructing `Message` is not an exclusive requirement for
+getting an answer. Likewise, a content object such as an image reference needs
+compatible model/provider support and does not upload or authorize access by
+itself.
+
+#### References
+
+- [Microsoft Agent Framework documentation](https://learn.microsoft.com/en-us/agent-framework/).
+<!-- markdownlint-disable-next-line MD013 -->
+- [Microsoft Agent Framework source repository](https://github.com/microsoft/agent-framework) (installed APIs may differ from upstream).
+
+## Tools and orchestration
+
+Tools give a model a controlled way to request application-owned work. The
+model proposes a tool call from the registered name and input schema; the
+framework invokes the Python function and makes its result available for the
+agent's response. The function is still application code, so its permissions,
+side effects, validation, and error handling remain the application's
+responsibility.
+
+### Function tools and the `@tool` decorator
+
+#### What it means
+
+The installed `agent_framework.tool` decorator wraps a Python callable as a
+`FunctionTool`. With `@tool`, the framework infers an input model and JSON
+schema from the function signature. If no explicit description is supplied,
+the decorated function's docstring becomes the tool description. The
+`Agent(tools=[...])` argument registers that object with the agent; it does
+not call the function during local construction.
+
+#### Example
+
+**Project excerpt; the live model request is not made by this excerpt:**
+
+```python
+# Register a callable function as a model-discoverable framework tool.
+@tool
+# The annotation supplies the input and result types used for tool metadata.
+async def get_weather(location: str) -> str:
+    """Get weather for a location."""
+    # Return application data that the framework can pass back to the model.
+    return f"Weather for {location}"
+
+# Attach the tool to the local agent configuration.
+agent = Agent(client=chat_client, tools=[get_weather])
+# Start the run; the model may request the tool before producing final text.
+response = await agent.run("What is the weather in London?")
+```
+
+In stage 05, the function returns randomized demo data rather than calling a
+weather service. The `location: str` annotation supplies the input shape, the
+docstring supplies the description, and the returned string is the tool result.
+The model can select the tool because it is registered in `tools`; the Python
+function is executed only when the framework's invocation flow receives a tool
+request.
+
+#### Where it is used
+
+- [Import the decorator](../ai-agents/microsoft-agent-framework/05_simple-maf-tool-decorator/app/simple-ai-agent-maf-tool-decorator.py#L15-L17).
+- [Declare and implement the decorated weather tool](../ai-agents/microsoft-agent-framework/05_simple-maf-tool-decorator/app/simple-ai-agent-maf-tool-decorator.py#L46-L67).
+- [Register the tool with the agent](../ai-agents/microsoft-agent-framework/05_simple-maf-tool-decorator/app/simple-ai-agent-maf-tool-decorator.py#L93-L104).
+- [Run the structured weather request](../ai-agents/microsoft-agent-framework/05_simple-maf-tool-decorator/app/simple-ai-agent-maf-tool-decorator.py#L106-L113).
+
+#### Why it is used here
+
+Stage 04 already creates a `Message`, runs an `Agent`, and prints model text.
+Stage 05 adds an application action to that same run boundary. The decorator
+removes the need to construct a separate schema object for this simple
+signature, while the agent's tool list makes the function available to the
+model. This is useful for operations such as looking up an order, querying a
+permitted database, or calling a weather API, where the model should request
+an application function instead of inventing the result.
+
+The decorator is not the only supported construction path. The installed
+`tool(...)` API also accepts an explicit `description`, a Pydantic or mapping
+`schema`, approval settings, invocation limits, and a result parser. Those
+options are SDK capabilities; this sample uses none of them. Likewise, stage
+03's direct `Agent(...)` already accepted `tools`; stage 05 implements the
+tool-registration path rather than adding a new agent class.
+
+#### Common misunderstanding
+
+Tool registration does not grant permissions, make arbitrary external systems
+safe, or guarantee that a model will call the function. A compatible model and
+provider must support tool calling, and the application must implement and
+authorize the operation. This sample's weather function has no external side
+effect and no live API; its randomized result is only a teaching stand-in.
+Tool calling is also different from MCP: MCP can expose protocol-based tools
+through a server, while this example registers a local Python callable.
+
+#### References
+
+- [Microsoft Agent Framework tool documentation](https://learn.microsoft.com/en-us/agent-framework/agents/tools/).
+- [Microsoft Agent Framework documentation](https://learn.microsoft.com/en-us/agent-framework/).
+- [Python function annotations](https://docs.python.org/3/library/typing.html).
 
 Composition connects separately configured components into an application.
 An agent's behavior and its model connection can be configured independently.

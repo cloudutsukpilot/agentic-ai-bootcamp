@@ -1,0 +1,244 @@
+# Simple AgentClass — Microsoft Agent Framework
+
+This is the third learning stage in the Microsoft Agent Framework course. It
+introduces the **agent class** as the main object used to define and run an AI
+agent. The code for this stage has not been added yet, so this README is a
+conceptual guide and a placeholder for the implementation that will follow.
+
+## Overview and sample identity
+
+| Dimension | This stage |
+| --- | --- |
+| Learning objective | Understand what an agent object represents and which responsibilities belong to it |
+| Framework | Microsoft Agent Framework for Python |
+| Model provider/hosting | To be established by the future code |
+| Client/API | To be established by the future code |
+| Authentication | To be established by the selected provider client |
+| Input | A user prompt or query supplied to the agent |
+| Output | A model-generated response or an action result |
+| Current status | Documentation first; source code and dependency manifest are pending |
+
+The lecture uses **AgentClass** as a simple name for the agent object. The
+installed Microsoft Agent Framework API may expose that idea through a concrete
+class, a factory, or a client method such as `as_agent`. The final name and
+construction pattern must be confirmed from the code and installed package when
+this stage is implemented.
+
+## What the AgentClass represents
+
+An agent object brings together the parts needed to perform an agent run:
+
+| Responsibility | Conceptual role |
+| --- | --- |
+| Model access | Uses a model client to send the agent's instructions and user input to an LLM |
+| Identity | Gives the agent a readable name so its purpose is clear |
+| Instructions | Defines the agent's role, behavior, personality, boundaries, and response style |
+| Prompt processing | Accepts a user query and coordinates the request |
+| Reasoning | Lets the configured model interpret the instructions and input |
+| Execution | Runs the model request and any enabled tool or function calls |
+| Result handling | Returns a response or action result to the caller |
+
+The agent is **not the model itself**. The client is responsible for connecting
+to a provider and authenticating the request. The agent uses that client while
+adding application-specific behavior through its name, instructions, tools, and
+other runtime options.
+
+### Conceptual execution flow
+
+1. Configure a provider client with the endpoint or project details, deployment
+   or model identifier, and an authentication method.
+2. Create the agent object with that client, a name, and instructions.
+3. Give the agent a user prompt.
+4. The agent sends the relevant context to the model through the client.
+5. If tools or functions are enabled, the agent can coordinate a tool call and
+   use its result as part of the run.
+6. The agent returns the completed response or action to the application.
+
+This flow describes the learning goal, not a claim about the current source:
+stage 03 has no Python entry point yet.
+
+## Capabilities
+
+The table separates the concepts discussed in the lecture from capabilities
+that are actually implemented in this folder.
+
+| Capability | Status in this folder | Notes |
+| --- | --- | --- |
+| Agent object with name and instructions | Planned | This is the central lesson for the stage; source code is pending |
+| Single-agent prompt and response | Planned | The future sample should send a query through one agent |
+| Model client integration | Planned | The provider and client have not been selected in this folder |
+| Local function tools | Not implemented | The lecture introduces the possibility; no tool signatures or code exist yet |
+| MCP tools | Not implemented | MCP is a later learning stage and is not configured here |
+| Short-term conversation memory | Not implemented | No session, thread, or multi-turn state exists yet |
+| Persistent memory | Not implemented | No database, file store, or other persistence exists yet |
+| Streaming | Not established | The future entry point must define whether output is streamed |
+| Multi-agent orchestration | Not implemented | This stage focuses on one agent object |
+| Retrieval/RAG | Not implemented | No retrieval source or index exists |
+| Middleware | Not implemented | The lecture mentions middleware as a future extension |
+
+An SDK may support these features without this sample enabling them. MCP
+provides a protocol for tools and context; it does not automatically provide
+short-term conversation memory or persistent storage.
+
+## Folder contents
+
+```text
+03_simple-maf-agentclass/
+└── README.md    # This conceptual guide; implementation is pending
+```
+
+There is currently no tracked Python source, `requirements.txt`, test file, or
+example configuration in this folder. A future update should add those files
+and then replace the pending statements in this README with source-linked
+details. No private configuration, virtual environment, or generated bytecode
+is included.
+
+## Frameworks and libraries
+
+| Component | Intended purpose | Version evidence |
+| --- | --- | --- |
+| Microsoft Agent Framework | Define and execute the agent using a model client | Not verified for this empty stage |
+| Provider client | Authenticate with and send requests to the selected model service | Provider not selected yet |
+| Python standard library | Likely to provide the script entry point and asynchronous execution | No source exists to verify imports |
+
+The repository's [baseline Microsoft Agent Framework sample](../01_simple-maf-openai/README.md)
+documents one Azure OpenAI client variant. That is a neighboring comparison,
+not evidence that stage 03 will use Azure OpenAI or the same dependency
+versions. Check the future stage manifest and installed metadata before
+recording package versions here.
+
+Useful first-party references:
+
+- [Microsoft Agent Framework documentation](https://learn.microsoft.com/en-us/agent-framework/)
+- [Microsoft Agent Framework source repository](https://github.com/microsoft/agent-framework)
+- [Python classes documentation](https://docs.python.org/3/tutorial/classes.html)
+- [Python asynchronous programming](https://docs.python.org/3/library/asyncio.html)
+
+## Prerequisites and setup
+
+The runnable prerequisites cannot be finalized until the source code and
+dependency manifest are added. The eventual sample will need:
+
+- A supported Python interpreter documented by the future dependency manifest.
+- Access to the selected model provider and a compatible model deployment.
+- Network access for package installation and live model requests.
+- Provider credentials with permission to invoke the selected deployment.
+- A separate `.venv` inside this sample folder.
+
+The following commands are a **Linux/macOS Bash or Zsh setup outline**, not a
+complete setup for the current empty folder. Run them from the repository root
+after a manifest has been added:
+
+```bash
+cd ai-agents/microsoft-agent-framework/03_simple-maf-agentclass
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+```
+
+Select `03_simple-maf-agentclass/.venv/bin/python` with **Python: Select
+Interpreter** in VS Code. Windows users should use the equivalent Python
+launcher and virtual-environment paths for their shell; the commands above are
+not presented as Windows commands.
+
+## Configuration
+
+No configuration names can be documented accurately yet because no source file
+reads settings in this folder. Do not create a configuration file based on
+guessed names. The implementation will determine the exact settings,
+precedence, and location.
+
+| Configuration concern | Required? | Current status |
+| --- | --- | --- |
+| Model provider endpoint or project URL | Future code decides | Not defined |
+| Deployment name or model identifier | Future code decides | Not defined; a deployment name is not necessarily a model family name |
+| Authentication credential | Future code decides | Not defined; never commit a key or token |
+| Agent name and instructions | Yes conceptually | Will be supplied when the agent is constructed |
+
+The provider's resource endpoint, a full API route, a project endpoint, and a
+deployment name are different concepts. The implementation README update must
+explain which form the selected client expects rather than assuming that every
+OpenAI-compatible endpoint supports every API.
+
+## Run and expected output
+
+There is no run command yet. The folder has no entry point, and attempting to
+run a guessed script would not validate the AgentClass lesson.
+
+Once code is added, this section should document the exact command, the prompt
+input mechanism, whether the process exits after one response or stays
+interactive, and the response shape. A live model request may incur provider
+charges and requires network access. Model output is nondeterministic, so an
+example response should be instructional rather than presented as guaranteed
+output.
+
+## Validation and troubleshooting
+
+The current validation evidence is limited to inspecting the target folder:
+
+- No automated test suite exists.
+- No Python syntax or import check can run because there is no Python source.
+- No dependency or comment check can run because there is no manifest or Python
+  file.
+- No live model request was made.
+
+After implementation, the README should record the interpreter version and the
+exact safe checks used, such as syntax compilation, import validation, the
+repository learning-comment checker, dependency consistency, and focused tests.
+Credential validation and a live provider request should remain separate from
+offline documentation checks.
+
+| Future symptom | First check |
+| --- | --- |
+| The editor cannot resolve framework imports | Select this stage's `.venv` and install only the future stage manifest |
+| Authentication fails | Check the provider credential, endpoint or project URL, permissions, and network policy without printing secrets |
+| Deployment is not found | Confirm the deployment name and provider/API compatibility; do not substitute a model family name automatically |
+| A multi-turn prompt loses context | Check whether the code reuses a session or thread; an agent object alone does not prove conversation memory |
+
+## Learning links
+
+- **Python objects:** [Python classes](https://docs.python.org/3/tutorial/classes.html)
+  explains classes, instances, attributes, and methods that will appear in the
+  future implementation.
+- **Python asynchronous execution:** [event loop](../../../docs/python-concepts.md#event-loop),
+  [coroutines and `async def`](../../../docs/python-concepts.md#coroutines-and-async-def),
+  and [await](../../../docs/python-concepts.md#await).
+- **Repository baseline:** [stage 01 README](../01_simple-maf-openai/README.md)
+  shows a completed single-agent sample and documents the difference between a
+  model client and a local agent.
+- **Framework reference:** [Microsoft Agent Framework documentation](https://learn.microsoft.com/en-us/agent-framework/)
+  and [source repository](https://github.com/microsoft/agent-framework).
+
+An `ai-concepts.md` guide is not present in the repository at this time, so
+this README does not link to a nonexistent local guide. When the code is added,
+agent-specific explanations should follow the repository's learning-comment
+ownership rules rather than creating a duplicate glossary here.
+
+## Learning progression and limitations
+
+Each course stage is intended to remain an independently understandable folder.
+The following is a conceptual roadmap, not a claim that every stage is already
+implemented:
+
+| Stage | Objective | Relationship to this stage |
+| --- | --- | --- |
+| Simple agent | Configure a client, create one agent, and run one prompt | Baseline from [stage 01](../01_simple-maf-openai/README.md) |
+| AgentClass | Make the agent object and its responsibilities explicit | Current learning objective |
+| MessageClass | Separate or model messages exchanged during a run | Later course stage |
+| Local tools | Register functions, understand arguments and side effects, and observe tool selection | Later course stage |
+| MCP | Connect protocol-based external tools and understand transport and permissions | Later course stage; MCP does not provide conversation memory by itself |
+| Short-term memory | Reuse conversation state for related turns and reset it deliberately | Later course stage; state is scoped to a conversation/session |
+| Long-term memory | Persist selected information across sessions with retention and cleanup rules | Later course stage; persistence is different from retrieval/RAG |
+
+This stage is a learning aid, not a production agent. It will not establish
+secure secret storage, authorization policy, retry behavior, observability,
+data-retention guarantees, or production deployment practices until those
+concerns are implemented and documented explicitly.
+
+## Planned update after code is added
+
+When the lecture demo is implemented, revise this README to add the real entry
+point, dependency manifest, provider and client identity, authentication
+settings, configuration precedence, exact AgentClass construction, prompt
+execution, output behavior, validation evidence, and source line links. Keep
+the conceptual explanation above, but change each `Planned` or `Not defined`
+statement to match observed code rather than the SDK's general capabilities.

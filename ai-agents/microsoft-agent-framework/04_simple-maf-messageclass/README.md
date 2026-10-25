@@ -199,6 +199,34 @@ wording is nondeterministic and was not observed during documentation checks.
 Configuration, authentication, authorization, network, or provider failures
 produce an exception and nonzero exit status.
 
+## Exercises to try
+
+Each exercise makes a live, potentially billable model request. Undo your
+edits afterwards.
+
+1. **String versus `Message`.** Replace `user_message` with the plain string
+   prompt in `agent.run(...)`. The answer is equivalent: the framework wraps a
+   string in a user `Message` for you. `Message` makes the role explicit.
+2. **Several content items.** Use
+   `contents=["Explain the Message class.", "Answer in 2 sentences."]`. One
+   message can carry several content items, all from the same role.
+3. **Hand-written conversation history.** Pass a list of messages:
+
+   ```python
+   history = [
+       Message(role="user", contents=["My favourite colour is green."]),
+       Message(role="assistant", contents=["Nice, green it is."]),
+       Message(role="user", contents=["What is my favourite colour?"]),
+   ]
+   response = await agent.run(history)
+   ```
+
+   The agent answers "green" because you supplied the earlier turns yourself.
+   Stage 06 lets a session keep this history for you.
+4. **Few-shot style.** Use the same list pattern to show one example question
+   and answer in a fixed style (for example a one-line definition), then ask a
+   new question. The model tends to copy the example's format.
+
 ## Validation and troubleshooting
 
 From the repository root, the following offline checks use this stage's

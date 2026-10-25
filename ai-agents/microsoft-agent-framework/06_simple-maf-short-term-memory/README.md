@@ -244,6 +244,31 @@ references. Exact wording, tool selection, and response length are
 nondeterministic. Configuration, credential, authorization, network, or
 provider failures produce a nonzero process exit.
 
+## Exercises to try
+
+Each exercise makes live, potentially billable model requests. Undo your
+edits afterwards.
+
+1. **Break the context.** Pass a *new* session to the second run:
+   `session=agent.create_session()`. The second answer can no longer refer to
+   "those bullet points", because a new session starts an empty context.
+2. **Omit the session.** Remove `session=agent_session` from the second run.
+   The result is the same as exercise 1: without a session each run stands
+   alone.
+3. **Look inside the session.** After each `agent.run(...)`, add
+   `print(agent_session.to_dict())`. Look at which fields change between runs.
+   `FoundryChatClient` lets the service store history by default, so you may
+   see `service_session_id` change while `state` stays small: the history lives
+   on the service, referenced by that ID.
+4. **Two users, two sessions.** Create `session_alex` and `session_sam`. Tell
+   each session a different name, then ask `"What is my name?"` in each. Every
+   session keeps its own context, which is how an app separates users.
+5. **Restart the script.** Run the script, then run it again starting with
+   `"Add one line description to the each of those bullet points."` The new
+   process has no idea which bullet points you mean: session memory does not
+   survive a restart. [Stage 07](../07_simple-maf-long-term-memory/README.md)
+   adds memory that does.
+
 ## Validation and troubleshooting
 
 The stage's test directory is an empty placeholder, so no automated behavior

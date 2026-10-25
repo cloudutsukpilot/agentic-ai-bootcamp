@@ -1,1 +1,8 @@
-# Dependencies for this learning stage will be added with the implementation.
+# Dependencies for the Foundry agent and its MCP tools.
+agent-framework-foundry
+azure-identity
+python-dotenv
+# Match the MCP range required by the installed agent-framework-core 1.23.0 extra.
+mcp>=2.2.0,<3
+# MCP subscription recovery uses this retry library; match the same framework extra.
+tenacity>=9.1.4,<9.2.0

@@ -198,6 +198,30 @@ identity, or service errors produce a traceback and nonzero exit. A one-sentence
 explanation is illustrative expected output, not an observed live result or
 guaranteed exact text. Model output is nondeterministic.
 
+## Exercises to try
+
+Each exercise makes a live, potentially billable model request unless it says
+otherwise. Undo your edits afterwards.
+
+1. **Same prompt, different provider.** Run stage 01 and this stage with the
+   same prompt and compare. The agent code is nearly identical; only the
+   client, endpoint and authentication changed.
+2. **Find your identity (no model call).** If you signed in with the Azure CLI,
+   run `az account show` to see the account whose token `DefaultAzureCredential`
+   is likely to use. Notice that this stage has no API key in `app/.env`.
+3. **Change the instructions.** Set `instructions=` to
+   `"Explain everything to a 10-year-old."` and compare the answer with the
+   original. The prompt stays the same.
+4. **What the model cannot know.** Change the prompt to
+   `"What is the weather in Pune right now?"` The agent has no tools or live
+   data, so it should say it cannot know or give a generic answer. Stage 05
+   adds a tool for exactly this.
+5. **Missing configuration (no model call).** Rename `FOUNDARY_MODEL` in
+   `app/.env` to `FOUNDARY_MODEL_X` and run. `required_setting` raises
+   `ValueError` before authenticating. An empty environment variable would not
+   work here, because the lookup falls back to the `.env` value. Restore the
+   name afterwards.
+
 ## Validation and troubleshooting
 
 Offline checks for this update used the sample interpreter: comment placement,

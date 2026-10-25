@@ -284,6 +284,28 @@ Authentication, authorization, configuration, network, or provider failures
 raise an exception and produce a nonzero process exit. A missing setting raises
 `ValueError` before the model request is made.
 
+## Exercises to try
+
+Each exercise makes a live, potentially billable model request. Undo your
+edits afterwards.
+
+1. **Instructions shape the agent.** Change `instructions=` to
+   `"You answer only with one short sentence."` and run. The same prompt now
+   produces a much shorter answer.
+2. **Two agents, one client.** After the first `agent`, create a second
+   `Agent(client=chat_client, name="Critic", instructions="Point out one weakness in the given text.")`.
+   Pass `response.text` to the second agent's `run(...)` and print both answers.
+   One client can serve several agents with different behavior; this is the
+   idea behind multi-agent orchestration.
+3. **The name is local.** Change `name=` to any value and run. Nothing changes
+   in Foundry: the name is local metadata, not a deployed resource.
+4. **Per-run options.** Pass `options={"max_tokens": 50}` to `agent.run(...)` and
+   compare the answer length. Option support depends on the deployed model; if
+   the provider rejects an option, remove it.
+5. **No memory between runs.** Call `agent.run(...)` twice: first
+   `"My name is Alex."`, then `"What is my name?"`. Print the second answer.
+   Without a session the second run cannot see the first; stage 06 fixes this.
+
 ## Validation
 
 The following offline checks use the existing stage 01 interpreter and do not

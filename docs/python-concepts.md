@@ -12,6 +12,8 @@ and identity belong in [Azure concepts](./azure-concepts.md).
 
 ## Contents
 
+- [Configuration and file handling](#configuration-and-file-handling)
+  - [Script-relative paths and binary image data](#script-relative-paths-and-binary-image-data)
 - [Functions and typing](#functions-and-typing)
   - [Helper functions and required settings](#helper-functions-and-required-settings)
 - [Asynchronous programming](#asynchronous-programming)
@@ -26,6 +28,50 @@ and identity belong in [Azure concepts](./azure-concepts.md).
   - [Foundry client versus local agent](#foundry-client-versus-local-agent)
 - [Identity and access](#identity-and-access)
   - [Async credentials and resource cleanup](#async-credentials-and-resource-cleanup)
+
+## Configuration and file handling
+
+Paths identify files; reading a file turns its stored contents into Python data.
+
+### Script-relative paths and binary image data
+
+#### What it means
+
+`Path(__file__).resolve().with_name("sample-image.png")` locates an image beside
+the script rather than relative to the terminal's current working directory.
+`read_bytes()` opens the file in binary mode, returns `bytes`, and closes it.
+Binary reads preserve image data rather than attempting to decode it as text.
+
+#### Example
+
+**Project excerpt; requires the sample's existing PNG and `Path` import:**
+
+```python
+# Create image_path for the PNG beside the running script.
+image_path = Path(__file__).resolve().with_name("sample-image.png")
+# Create image_data containing the file's raw bytes, then close the file.
+image_data = image_path.read_bytes()
+```
+
+#### Where it is used
+
+- [Load the stage 09 image before building its message](../ai-agents/microsoft-agent-framework/09_simple-maf-image-analysis/app/simple-ai-agent-maf-image-analysis.py#L90-L93).
+
+#### Why it is used here
+
+The image-content factory expects bytes. A script-relative path lets the same
+sample find its image when launched from either the lesson or repository root.
+
+#### Common misunderstanding
+
+Calling a method on an undefined `image_file` raises `NameError`: no file object
+was created. `read_bytes()` takes no mode argument; `"rb"` belongs to `open()`.
+A missing image still raises `FileNotFoundError`; constructing a path does not
+create the image or validate its format.
+
+References: [Path.read_bytes](https://docs.python.org/3.12/library/pathlib.html#pathlib.Path.read_bytes),
+[Path.with_name](https://docs.python.org/3.12/library/pathlib.html#pathlib.PurePath.with_name),
+and [NameError](https://docs.python.org/3.12/library/exceptions.html#NameError).
 
 ## AI agent architecture
 

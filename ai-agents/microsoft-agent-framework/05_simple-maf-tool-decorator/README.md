@@ -254,6 +254,27 @@ The local function does not contact a weather service. Configuration,
 credential, authorization, network, or provider failures produce a nonzero
 process exit.
 
+## Exercises to try
+
+Each exercise makes a live, potentially billable model request. Undo your
+edits afterwards.
+
+1. **See when the tool runs.** Add `print(f"get_weather called for {location}")`
+   as the first line inside `get_weather`. Ask `"What is the weather in Pune and Delhi?"`
+   The print shows the framework calling your function, often once per city.
+2. **The model decides.** Ask a question unrelated to weather, such as
+   `"What is the capital of France?"` The print from exercise 1 does not
+   appear: registering a tool does not force the model to use it.
+3. **Descriptions matter.** Replace the docstring's first line with
+   `"Does something."` and repeat the weather question. The model may stop
+   choosing the tool, because the docstring is how it learns what the tool is for.
+4. **Add a second tool.** Write a `@tool` function such as
+   `get_time(city: str) -> str` that returns a fixed demo time, add it to
+   `tools=[get_weather, get_time]`, and ask `"What is the time and weather in Pune?"`
+   The model can pick and combine several tools in one run.
+5. **Explicit description.** Use `@tool(description="Get the current weather for a city.")`
+   instead of relying on the docstring, and confirm the tool is still selected.
+
 ## Validation and troubleshooting
 
 The stage's test directory is an empty placeholder, so no automated behavior

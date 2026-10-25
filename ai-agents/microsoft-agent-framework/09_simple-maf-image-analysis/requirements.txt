@@ -1,0 +1,5 @@
+# Dependencies for this learning stage will be added with the implementation.
+# Dependencies for the Foundry agent and its MCP tools.
+agent-framework-foundry
+azure-identity
+python-dotenv

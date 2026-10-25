@@ -13,11 +13,14 @@ on 2026-10-13. Online documentation can evolve independently.
 - [Agent architecture](#agent-architecture)
   - [Foundry client versus local agent](#foundry-client-versus-local-agent)
   - [Instructions versus user prompts](#instructions-versus-user-prompts)
+    - [Streaming text updates and replacement snapshots](#streaming-text-updates-and-replacement-snapshots)
   - [Messages as structured conversation items](#messages-as-structured-conversation-items)
     - [Short-term conversation sessions](#short-term-conversation-sessions)
   - [Explicit agent composition](#explicit-agent-composition)
   - [Tools and orchestration](#tools-and-orchestration)
   - [Function tools and the `@tool` decorator](#function-tools-and-the-tool-decorator)
+- [MCP connections](#mcp-connections)
+    - [Stdio server lifecycle](#stdio-server-lifecycle)
 
 ## Agent architecture
 
@@ -83,6 +86,55 @@ by this factory. For Python method-call semantics see
 <!-- markdownlint-disable-next-line MD013 -->
 - [Microsoft Agent Framework source](https://github.com/microsoft/agent-framework) (upstream may differ from installed versions).
 - [Project endpoints and deployments](./azure-concepts.md#foundry-project-endpoints-and-deployments).
+
+### Streaming text updates and replacement snapshots
+
+#### What it means
+
+A streaming update is not always new text to append. In stage 10's installed
+`agent-framework-core` 1.23.0, the Responses API adapter converts
+`response.output_text.delta` into text content with `merge_mode="append"`.
+It also converts `response.output_text.done` into the full text with
+`merge_mode="replace"`. That snapshot replaces the corresponding accumulated
+content; it is not a second answer. `AgentResponseUpdate.text` concatenates its
+text contents without interpreting their merge modes.
+
+#### Example
+
+**Illustrative event sequence, reproduced offline with SDK content objects:**
+
+1. Append `Hello` followed by a space.
+2. Append `world`.
+3. Replace the accumulated content with `Hello world`.
+
+Printing every update's `.text` with no separator produces
+`Hello worldHello world`. A terminal renderer that displays only new text can
+print append contents and skip replacement snapshots when those snapshots
+repeat the streamed text. A general renderer must instead honor replacements
+per content item, since a replacement may revise earlier text.
+
+#### Where it is used
+
+- [Stage 10's stream and merge-mode-aware text printing](../ai-agents/microsoft-agent-framework/10_simple-maf-agent-streaming/app/simple-ai-agent-maf-agent-streaming.py#L84-L96).
+
+#### Why it is used here
+
+Streaming displays output before the whole response completes. Distinguishing
+incremental text from final snapshots prevents the terminal from displaying
+the entire answer twice. This diagnosis was checked against installed SDK
+source and an offline reproduction; no paid model request was made. The terminal
+loop now skips replacement snapshots and prints only incremental text. This
+simple demo does not redraw earlier output if a provider revises a snapshot.
+
+#### Common misunderstanding
+
+`chunk.text` does not guarantee that its text has never appeared before.
+Duplicated terminal output does not by itself prove two agent invocations.
+
+#### References
+
+- [Official Responses API streaming events](https://platform.openai.com/docs/api-reference/responses-streaming).
+- [Microsoft Agent Framework source](https://github.com/microsoft/agent-framework) (compare with the installed version).
 
 ### Instructions versus user prompts
 
@@ -409,3 +461,54 @@ Constructor and factory behavior was verified from the installed Stage 03
 environment (`agent-framework` 1.21.0, Python 3.12.3) on 2026-10-13. The README's
 [technical comparison](../ai-agents/microsoft-agent-framework/03_simple-maf-agentclass/README.md#why-this-stage-adds-agent)
 connects these principles to supported extension APIs and their sample status.
+
+## MCP connections
+
+MCP separates the agent's tool client from a server that implements operations.
+
+### Stdio server lifecycle
+
+#### What it means
+
+`MCPStdioTool` connects to a local server subprocess using standard input/output.
+Entering its async context launches the process and discovers tools; registering
+the adapter with the agent makes those tools available for model-selected calls.
+Exiting the context cleans up the connection and subprocess. This protocol does
+not itself provide memory or grant permissions.
+
+#### Example
+
+**Illustrative lifecycle excerpt; assumes the adapter is already configured:**
+
+```python
+# Start the configured MCP server and initialize its protocol connection.
+async with azure_mcp:
+    # Keep this scope open while the agent uses the server's tools.
+    print("MCP connection initialized")
+```
+
+The stage 08 connection was smoke-tested through startup, tool discovery, and
+cleanup without invoking tools, making model requests, or operating on Azure resources.
+
+#### Where it is used
+
+- [Configure and enter the stage 08 MCP connection](../ai-agents/microsoft-agent-framework/08_simple-maf-mcp/app/simple-ai-agent-maf-mcp.py#L128-L144).
+- [Register local and MCP tools](../ai-agents/microsoft-agent-framework/08_simple-maf-mcp/app/simple-ai-agent-maf-mcp.py#L164-L165).
+
+#### Why it is used here
+
+Stage 08 adds Azure operations through an external server while retaining its
+existing local weather function and file-memory provider.
+
+#### Common misunderstanding
+
+The Python `mcp` package supplies client support, not the Azure server executable.
+Framework 1.23.0 also requires `tenacity` for MCP subscription recovery; stage 08
+declares both optional dependencies explicitly using the framework's version ranges.
+The subprocess has its own authentication context; it does not receive the
+Python credential object. See [Azure MCP launch configuration](./azure-concepts.md#azure-mcp-server-launch).
+
+#### References
+
+- [Official Agent Framework MCP tools guide](https://learn.microsoft.com/en-us/agent-framework/agents/tools/).
+- [MCP standard transports](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).

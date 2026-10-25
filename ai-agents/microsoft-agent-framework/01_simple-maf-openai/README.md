@@ -186,6 +186,29 @@ and model; no exact sentence is guaranteed. For a different prompt, edit the
 workflow. Unhandled configuration/provider errors produce a traceback and a
 nonzero exit status.
 
+## Exercises to try
+
+Each exercise edits the script and makes a live, potentially billable model
+request unless it says otherwise. Undo your edits afterwards, or keep a copy
+of the original file.
+
+1. **Change the prompt.** Replace the text passed to `agent.run(...)` with your
+   own question and run again. Run the same prompt twice and compare the
+   answers: model output is nondeterministic.
+2. **Instructions versus prompt.** Keep the prompt, but change `instructions=`
+   to `"Always answer in exactly 3 bullet points."` The instructions shape
+   *how* the agent answers every request; the prompt says *what* to answer.
+3. **Missing configuration (no model call).** Rename `AZURE_OPENAI_MODEL` in
+   `app/.env` to `AZURE_OPENAI_MODEL_X` and run. `required_setting` raises
+   `RuntimeError` before any request is sent. Restore the name afterwards.
+4. **Environment precedence.** Run
+   `AZURE_OPENAI_MODEL=does-not-exist ./.venv/bin/python app/simple-ai-agent-maf-azopenai.py`.
+   The process environment value wins over `app/.env`, so the provider rejects
+   the unknown deployment name. This shows the lookup order in `required_setting`.
+5. **No memory between runs.** Change the prompt to `"My name is Alex."`, run,
+   then change it to `"What is my name?"` and run again. The agent cannot
+   answer, because each run is independent. Stages 06 and 07 add memory.
+
 ## Validation without a model request
 
 From this sample folder:

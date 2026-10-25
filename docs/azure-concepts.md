@@ -13,6 +13,56 @@ for language syntax. Stage 02 facts were checked on 2026-10-13 against installed
   - [Foundry project endpoints and deployments](#foundry-project-endpoints-and-deployments)
 - [Identity and access](#identity-and-access)
   - [Async credentials and resource cleanup](#async-credentials-and-resource-cleanup)
+- [Azure tooling](#azure-tooling)
+  - [Azure MCP server launch](#azure-mcp-server-launch)
+
+## Azure tooling
+
+Azure MCP exposes service operations as tools; the protocol lifecycle belongs in
+[AI concepts](./ai-concepts.md#stdio-server-lifecycle).
+
+### Azure MCP server launch
+
+#### What it means
+
+The npm package is `@azure/mcp`. In `@azure/mcp@latest`, the second `@`
+introduces npm's version tag. `@azure/mcplatest` instead names a different,
+nonexistent package and causes npm E404 before MCP can initialize.
+
+#### Example
+
+**Stage 08 launch arguments, used with `command="npx"`:**
+
+```python
+# Accept package installation and launch the latest Azure MCP server.
+args = ["-y", "@azure/mcp@latest", "server", "start"]
+```
+
+Verified on 2026-10-25: the tag resolved to `4.0.0-beta.3`, requiring Node.js
+22 or newer; installed Node.js was 22.23.1. The corrected command displayed
+`server start --help` successfully. The `latest` tag can change; pin a tested
+version when reproducible environments are required.
+
+#### Where it is used
+
+- [Configure the Azure MCP subprocess](../ai-agents/microsoft-agent-framework/08_simple-maf-mcp/app/simple-ai-agent-maf-mcp.py#L130-L139).
+
+#### Why it is used here
+
+The agent can request Azure subscription discovery through the server instead
+of implementing the Azure management API itself. Server authentication and
+Azure permissions remain separate requirements from Foundry model access.
+
+#### Common misunderstanding
+
+A `FileSystemAgentFileStore` experimental warning concerns the memory API's
+stability, not npm package resolution. Suppressing that warning cannot fix E404.
+
+#### References
+
+- [Azure MCP installation options](https://learn.microsoft.com/en-us/azure/developer/azure-mcp-server/get-started).
+- [Azure MCP npm package](https://www.npmjs.com/package/@azure/mcp).
+- [npm package specifications](https://docs.npmjs.com/cli/v11/using-npm/package-spec).
 
 ## Foundry services
 

@@ -4,27 +4,32 @@
 # asyncio is Python's built-in library for coordinating asynchronous work.
 # Import asyncio to run our agent coroutine on an event loop.
 import asyncio
+
 # os is Python's built-in operating-system interface.
 # Import os to read configuration inherited by this process.
 import os
+
 # pathlib is Python's built-in library for filesystem paths.
 # Import Path to locate the configuration file beside this script.
 from pathlib import Path
 
+# Import randint from Python's standard library to make the weather demo output vary.
+from random import randint
+
+# Import Agent, the local orchestration object that sends instructions through the client.
+from agent_framework import Agent, Message, tool
+
 # Agent Framework orchestrates agents; Foundry provides the remote model service.
 # Import FoundryChatClient, an adapter for the project's OpenAI Responses API.
 from agent_framework.foundry import FoundryChatClient
-# Import Agent, the local orchestration object that sends instructions through the client.
-from agent_framework import Agent, Message, tool
+
 # Azure Identity obtains Entra tokens; access permissions must be assigned separately.
 # Import the asynchronous credential so token acquisition fits this async workflow.
 from azure.identity.aio import DefaultAzureCredential
+
 # python-dotenv parses configuration without exporting it to the process environment.
 # Import dotenv_values to obtain file settings as a dictionary.
 from dotenv import dotenv_values
-
-# Import randint from Python's standard library to make the weather demo output vary.
-from random import randint
 
 # __file__ identifies this script; with_name keeps its folder and replaces the filename.
 # Create settings from the app-local file without printing any configuration values.

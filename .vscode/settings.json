@@ -8,5 +8,9 @@
     ],
     "code-runner.executorMap": {
         "python": "python3 -u"
+    },
+    "editor.tokenColorCustomizations": {
+        "comments": "",
+        "textMateRules": []
     }
 }

@@ -11,6 +11,7 @@ for language syntax. Stage 02 facts were checked on 2026-10-13 against installed
 
 - [Foundry services](#foundry-services)
   - [Foundry project endpoints and deployments](#foundry-project-endpoints-and-deployments)
+  - [Foundry project OpenAI client](#foundry-project-openai-client)
 - [Identity and access](#identity-and-access)
   - [Async credentials and resource cleanup](#async-credentials-and-resource-cleanup)
 - [Azure tooling](#azure-tooling)
@@ -120,6 +121,62 @@ a hosted Foundry agent. See [client versus agent](./ai-concepts.md#foundry-clien
 #### References
 
 - [Official Foundry provider configuration](https://learn.microsoft.com/en-us/agent-framework/integrations/by-component/model-providers/microsoft-foundry?pivots=programming-language-python).
+
+### Foundry project OpenAI client
+
+#### What it means
+
+`AIProjectClient` from the Azure AI Projects SDK (`azure.ai.projects.aio`)
+connects to a Foundry project endpoint. Its `get_openai_client()` method returns
+an `openai.AsyncOpenAI` client whose base URL is the project endpoint plus
+`/openai/v1` and whose API key is replaced by a bearer-token provider. That
+provider asks the credential for Entra tokens with the
+`https://ai.azure.com/.default` scope when a request is sent. MAF's
+`FoundryChatClient` does this internally; the Pydantic AI course does it
+explicitly because Pydantic AI has no Foundry-specific provider.
+
+#### Example
+
+**Project excerpt from Pydantic AI stage 02 (inside `main()`):**
+
+```python
+# Enter the credential, the project client, and its OpenAI client in order.
+async with (
+    DefaultAzureCredential() as credential,
+    AIProjectClient(endpoint=project_endpoint, credential=credential) as project_client,
+    project_client.get_openai_client() as openai_client,
+):
+    # Hand the authenticated client to Pydantic AI's generic OpenAI provider.
+    model = OpenAIResponsesModel(model_name, provider=OpenAIProvider(openai_client=openai_client))
+```
+
+Constructing these objects makes no network request; the first token request
+and model call happen during `agent.run(...)`. Verified offline on 2026-11-02
+with `azure-ai-projects` 2.10.0 by reading `get_openai_client()` and running the
+stage with stubbed clients.
+
+#### Where it is used
+
+- [Pydantic AI stage 02 `async with` block](../ai-agents/pydantic-framework/02_simple-pydanticai-foundary/app/simple-ai-agent-pydanticai-foundary.py#L56-L66)
+  and the [model passed to the agent](../ai-agents/pydantic-framework/02_simple-pydanticai-foundary/app/simple-ai-agent-pydanticai-foundary.py#L67-L75).
+- The same pattern is used by Pydantic AI stages 03–10.
+
+#### Why it is used here
+
+It lets the Pydantic AI course reuse the MAF course's `FOUNDARY_PROJECT_ENDPOINT`
+and Entra sign-in unchanged, while Pydantic AI only sees an ordinary OpenAI client.
+
+#### Common misunderstanding
+
+The project's OpenAI client is not an Azure OpenAI *resource* client: do not pass
+`https://<resource>.openai.azure.com` as the project endpoint. Getting the client
+does not check permissions; a missing role assignment only shows up as a 401/403
+on the first model call. See [async credentials](#async-credentials-and-resource-cleanup).
+
+#### References
+
+- [Azure AI Projects client library for Python](https://learn.microsoft.com/en-us/python/api/overview/azure/ai-projects-readme?view=azure-python).
+- [Pydantic AI OpenAI models and providers](https://pydantic.dev/docs/ai/models/openai/).
 
 ## Identity and access
 

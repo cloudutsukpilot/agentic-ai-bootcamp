@@ -21,6 +21,12 @@ on 2026-10-13. Online documentation can evolve independently.
   - [Function tools and the `@tool` decorator](#function-tools-and-the-tool-decorator)
 - [MCP connections](#mcp-connections)
     - [Stdio server lifecycle](#stdio-server-lifecycle)
+- [Pydantic AI course](#pydantic-ai-course)
+  - [Pydantic AI provider, model, and agent](#pydantic-ai-provider-model-and-agent)
+  - [Pydantic AI user content and conversations](#pydantic-ai-user-content-and-conversations)
+  - [Pydantic AI toolsets and file memory](#pydantic-ai-toolsets-and-file-memory)
+  - [Pydantic AI MCP toolsets](#pydantic-ai-mcp-toolsets)
+  - [Pydantic AI streamed runs](#pydantic-ai-streamed-runs)
 
 ## Agent architecture
 
@@ -512,3 +518,258 @@ Python credential object. See [Azure MCP launch configuration](./azure-concepts.
 
 - [Official Agent Framework MCP tools guide](https://learn.microsoft.com/en-us/agent-framework/agents/tools/).
 - [MCP standard transports](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).
+
+## Pydantic AI course
+
+The [Pydantic AI course](../ai-agents/pydantic-framework/README.md) repeats the
+MAF stages with a different framework. These concepts cover where Pydantic AI's
+design differs from MAF; the MAF concepts above still explain the shared ideas
+(instructions, tools, sessions, MCP). Facts were checked against the shared
+course environment's `pydantic-ai-slim` 2.64.0 on 2026-11-02.
+
+### Pydantic AI provider, model, and agent
+
+#### What it means
+
+Pydantic AI splits MAF's "client" into two objects. A **provider** (such as
+`AzureProvider` or `OpenAIProvider`) owns the authenticated HTTP client and base
+URL. A **model** (such as `OpenAIResponsesModel`) names the deployment and the
+API shape it speaks. The local `Agent(model, instructions=..., toolsets=...)`
+adds behavior. There is no `as_agent(...)` factory; `Agent(...)` is the only way
+to build an agent. Construction is local; `agent.run(...)` sends requests and
+returns a result whose `output` holds the answer.
+
+#### Example
+
+**Illustrative; uses Pydantic AI's offline `TestModel` instead of Azure:**
+
+```python
+# Import the agent class and an offline test model that needs no network.
+from pydantic_ai import Agent
+from pydantic_ai.models.test import TestModel
+
+# Build an agent from a model object; a real stage passes OpenAIResponsesModel here.
+agent = Agent(model=TestModel(), instructions="Answer briefly.")
+# run_sync is the synchronous form of await agent.run(...); output holds the answer.
+print(agent.run_sync("Hello").output)
+```
+
+`TestModel` returns canned text such as `success (no tool calls)`; this shows the
+agent works with any model object, which is what makes offline tests possible.
+
+#### Where it is used
+
+- [Stage 01: `AzureProvider` → `OpenAIResponsesModel` → `Agent`](../ai-agents/pydantic-framework/01_simple-pydanticai-openai/app/simple-ai-agent-pydanticai-azopenai.py#L47-L71).
+- [Stage 03: named `provider`, `chat_model`, and `Agent(model=...)`](../ai-agents/pydantic-framework/03_simple-pydanticai-agentclass/app/simple-ai-agent-pydanticai-agentclass.py#L67-L79).
+
+#### Why it is used here
+
+Stage 01 uses an API-key provider; stages 02–10 reuse a Foundry project client
+(see [Foundry project OpenAI client](./azure-concepts.md#foundry-project-openai-client)).
+The agent code stays the same because only the provider changes.
+
+#### Common misunderstanding
+
+Naming the provider and model separately (stage 03) is a readability step, not a
+new capability. The model name is the Azure **deployment** name, not a model family.
+
+#### References
+
+- [Pydantic AI agents](https://pydantic.dev/docs/ai/core-concepts/agent/).
+- [Pydantic AI OpenAI models](https://pydantic.dev/docs/ai/models/openai/).
+
+### Pydantic AI user content and conversations
+
+#### What it means
+
+`agent.run(user_prompt)` accepts a string or a list of `UserContent` items: text,
+`BinaryContent` (raw bytes with a media type), `ImageUrl`, and others. Whatever is
+passed is the user's turn, so no role is written. Pydantic AI records it as a
+`UserPromptPart` inside a `ModelRequest`. Each result also carries a
+`Conversation` (messages, running usage, conversation ID). Passing
+`conversation=previous_result.conversation` to the next run sends the earlier
+messages again, which is how follow-up questions work. The conversation object
+you pass in is not modified; the updated one comes back on the new result.
+
+#### Example
+
+**Illustrative; offline `TestModel`, verified with the course environment:**
+
+```python
+# Import the agent class, raw-bytes content type, and offline test model.
+from pydantic_ai import Agent, BinaryContent
+from pydantic_ai.models.test import TestModel
+
+# Create an agent that needs no network access.
+agent = Agent(TestModel())
+# Send an image item and a text item together as one user turn.
+first = agent.run_sync([BinaryContent(data=b"...", media_type="image/png"), "Describe it."])
+# Continue the conversation; the second run receives the first run's messages.
+second = agent.run_sync(["And in one word?"], conversation=first.conversation)
+# Print how many messages the second run's conversation holds.
+print(len(second.conversation.messages))
+```
+
+#### Where it is used
+
+- [Stage 04: a one-item text list](../ai-agents/pydantic-framework/04_simple-pydanticai-messageclass/app/simple-ai-agent-pydanticai-messageclass.py#L79-L88).
+- [Stage 06: continuing the conversation](../ai-agents/pydantic-framework/06_simple-pydanticai-short-term-memory/app/simple-ai-agent-pydanticai-short-term-memory.py#L122-L137).
+- [Stage 09: image bytes plus text](../ai-agents/pydantic-framework/09_simple-pydanticai-image-analysis/app/simple-ai-agent-pydanticai-image-analysis.py#L131-L143).
+
+#### Why it is used here
+
+It is Pydantic AI's equivalent of MAF's `Message(role="user", contents=[...])` and
+session reuse; see [messages](#messages-as-structured-conversation-items) and
+[short-term sessions](#short-term-conversation-sessions) for the MAF side.
+
+#### Common misunderstanding
+
+A conversation lives only in memory; it is lost when the script exits unless you
+serialize it. Reusing the *first* result's conversation for every turn silently
+drops later turns.
+
+#### References
+
+- [Pydantic AI message history](https://pydantic.dev/docs/ai/core-concepts/message-history/).
+
+### Pydantic AI toolsets and file memory
+
+#### What it means
+
+A `FunctionToolset` groups Python functions the model may call. The
+`@toolset.tool_plain` decorator registers a function without a `RunContext`
+argument; its signature and docstring become the tool's JSON schema and
+description. `Agent(toolsets=[...])` attaches toolsets. A toolset can also carry
+`instructions`, including a function that Pydantic AI calls before every model
+request, and `sequential=True` makes its tools run one at a time. Pydantic AI 2.64
+has no built-in file memory provider (its `MemoryTool` is Anthropic-only), so the
+course builds one from these pieces in `file_memory.py`.
+
+#### Example
+
+**Illustrative toolset with dynamic instructions:**
+
+```python
+# Import the toolset container.
+from pydantic_ai import FunctionToolset
+
+# Create a toolset whose instructions are recomputed before each model request.
+notes = FunctionToolset(instructions=lambda: "Saved notes: none yet.")
+
+# Register a function as a tool the model can request.
+@notes.tool_plain
+def save_note(text: str) -> str:
+    """Save a short note."""
+    # Return a result that is sent back to the model.
+    return "saved"
+```
+
+#### Where it is used
+
+- [Stage 05: `weather_tools` and `@weather_tools.tool_plain`](../ai-agents/pydantic-framework/05_simple-pydanticai-tool-decorator/app/simple-ai-agent-pydanticai-tool-decorator.py#L34-L72).
+- [Stage 07: the file memory toolset](../ai-agents/pydantic-framework/07_simple-pydanticai-long-term-memory/app/file_memory.py#L56-L103)
+  and [its registration](../ai-agents/pydantic-framework/07_simple-pydanticai-long-term-memory/app/simple-ai-agent-pydanticai-long-term-memory.py#L121-L138).
+
+#### Why it is used here
+
+A module-level toolset keeps MAF's shape (define `@tool` functions at the top,
+attach them when the agent is built inside `main()`). The memory toolset
+reproduces MAF's `file_memory_*` tools and `memories.md` index so stages 07–09
+behave like their MAF counterparts.
+
+#### Common misunderstanding
+
+Registering a tool does not make the model call it, and the memory index in the
+instructions is not the memory itself: the model still has to call
+`file_memory_read` for details and `file_memory_write` to save anything.
+
+#### References
+
+- [Pydantic AI function tools](https://pydantic.dev/docs/ai/tools-toolsets/tools/).
+- [Parallel tool calls and `sequential`](https://pydantic.dev/docs/ai/tools-toolsets/tools-advanced/#parallel-tool-calls-concurrency).
+
+### Pydantic AI MCP toolsets
+
+#### What it means
+
+`MCPToolset` (from `pydantic_ai.mcp`, built on the FastMCP client) exposes an MCP
+server's tools as a toolset. `StdioTransport(command=..., args=[...])` launches
+the server as a child process. Entering the toolset with `async with` starts the
+process and the MCP session; leaving it stops them. The tool list is cached after
+the first request by default.
+
+#### Example
+
+**Project excerpt from Pydantic AI stage 08:**
+
+```python
+# Describe how to launch the Azure MCP server; nothing starts yet.
+azure_mcp = MCPToolset(
+    StdioTransport(command="npx", args=["-y", "@azure/mcp@latest", "server", "start"]),
+    id="azure_mcp",
+)
+```
+
+#### Where it is used
+
+- [Stage 08: create the toolset](../ai-agents/pydantic-framework/08_simple-pydanticai-mcp/app/simple-ai-agent-pydanticai-mcp.py#L112-L118),
+  [enter it](../ai-agents/pydantic-framework/08_simple-pydanticai-mcp/app/simple-ai-agent-pydanticai-mcp.py#L120-L132),
+  and [register it](../ai-agents/pydantic-framework/08_simple-pydanticai-mcp/app/simple-ai-agent-pydanticai-mcp.py#L135-L154).
+
+#### Why it is used here
+
+It is the Pydantic AI counterpart of MAF's `MCPStdioTool`; see
+[stdio server lifecycle](#stdio-server-lifecycle) and
+[Azure MCP server launch](./azure-concepts.md#azure-mcp-server-launch).
+
+#### Common misunderstanding
+
+The MCP server authenticates with its own credential chain, not the Python
+credential object, and MCP provides tools, not memory.
+
+#### References
+
+- [Pydantic AI MCP client](https://pydantic.dev/docs/ai/mcp/client/).
+
+### Pydantic AI streamed runs
+
+#### What it means
+
+`agent.run_stream(...)` is an async context manager that returns a
+`StreamedRunResult`. `stream.stream_text(delta=True)` yields only the new text
+since the previous item; `delta=False` yields the full text so far. Items are
+debounced by 0.1 seconds by default (`debounce_by`). Streaming changes when text
+is shown, not what the model produces. `run_stream_events(...)` exposes every
+event, including tool calls, and is not used in the course.
+
+#### Example
+
+**Project excerpt from Pydantic AI stage 10:**
+
+```python
+# Start the streamed run; the request is sent when the block is entered.
+async with agent.run_stream(user_message) as stream:
+    # Receive each new text fragment as it arrives.
+    async for chunk in stream.stream_text(delta=True):
+        # Print without a newline and show it immediately.
+        print(chunk, end="", flush=True)
+```
+
+#### Where it is used
+
+- [Stage 10 streaming loop](../ai-agents/pydantic-framework/10_simple-pydanticai-agent-streaming/app/simple-ai-agent-pydanticai-agent-streaming.py#L86-L94).
+
+#### Why it is used here
+
+It matches MAF stage 10's `run(..., stream=True)`; with `delta=True` there are no
+replacement snapshots to skip (compare
+[streaming text updates](#streaming-text-updates-and-replacement-snapshots)).
+
+#### Common misunderstanding
+
+`stream_text` only yields text output. Tool calls made before the final answer
+are not printed by this loop.
+
+#### References
+
+- [Pydantic AI streaming](https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-events-and-final-output).

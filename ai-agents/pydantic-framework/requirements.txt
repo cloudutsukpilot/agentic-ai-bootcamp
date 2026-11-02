@@ -1,0 +1,15 @@
+# Shared dependencies for every numbered Pydantic AI learning stage in this folder.
+# Install once into ai-agents/pydantic-framework/.venv; all stages use that environment.
+# The existing simple-pydantic-openai FastAPI sample keeps its own separate setup.
+
+# Pydantic AI agent framework with the OpenAI model adapter and MCP client support.
+# Stages use 2.x APIs such as Conversation, FunctionToolset, and MCPToolset.
+pydantic-ai-slim[openai,mcp]>=2.64,<3
+# Foundry project client; supplies an authenticated OpenAI client for a project endpoint.
+azure-ai-projects
+# Entra ID credentials such as DefaultAzureCredential.
+azure-identity
+# Async HTTP transport required by the azure.identity.aio and azure.ai.projects.aio clients.
+aiohttp
+# Reads the shared .env file into a dictionary without exporting it.
+python-dotenv

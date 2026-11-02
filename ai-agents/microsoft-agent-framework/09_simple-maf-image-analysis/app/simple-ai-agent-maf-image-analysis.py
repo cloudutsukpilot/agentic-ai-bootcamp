@@ -10,6 +10,10 @@ import asyncio
 # Import os to read configuration inherited by this process.
 import os
 
+# sys is Python's built-in interface to runtime streams such as terminal output.
+# Import sys to detect whether standard output supports interactive terminal colors.
+import sys
+
 # pathlib is Python's built-in library for filesystem paths.
 # Import Path to locate configuration, the image, and memory beside this script.
 from pathlib import Path
@@ -68,6 +72,18 @@ def print_memory_files() -> None:
     # Print a closing line to mark the end of the file list.
     print("-------- End of memory files ------------")
 
+
+# A reusable helper gives every session the same readable prompt/response layout.
+# Define print_session_text with string labels and content; it returns no value.
+def print_session_text(session: str, kind: str, text: str) -> None:
+    # Create use_color only for terminals when the NO_COLOR setting is absent.
+    use_color = sys.stdout.isatty() and "NO_COLOR" not in os.environ
+    # Create color with ANSI cyan for prompts and green for responses, or plain text.
+    color = ("\033[36m" if kind == "Prompt" else "\033[32m") if use_color else ""
+    # Create reset to restore the terminal's normal color after this block.
+    reset = "\033[0m" if use_color else ""
+    # Print the session label and content; flush makes prompts visible before the request.
+    print(f"\n{color}---------- Session {session} {kind} ----------\n{text}{reset}", flush=True)
 
 
 # async def defines a coroutine function whose work is driven by an event loop.
@@ -142,15 +158,13 @@ async def main() -> None:
                 ],
             )
 
+            # Display the image filename and prompt text, without dumping binary image data.
+            print_session_text("A", "Prompt", f"[Image: {image_path.name}]\n{message_a.text}")
             # Send the message through session A; the model may call file_memory_write. This call may incur cost.
             response_a = await agent.run(message_a, session=session_a)
 
-            # Print a label so the first response is easy to distinguish in the terminal.
-            print("---------- Session A Response ---------- ")
-            # Print only the first response text, not credentials or request metadata.
-            print(response_a.text)
-            # Print a closing label for the first response block.
-            print("---------- End of Session A Response ---------- ")
+            # Display the first response in green when terminal colors are enabled.
+            print_session_text("A", "Response", response_a.text)
 
             # Show the memory files the agent wrote during session A.
             print_memory_files()
@@ -159,11 +173,11 @@ async def main() -> None:
             # Create session_b, a fresh in-process session with no earlier conversation turns.
             session_b=agent.create_session()
 
-            # Create message_a containing an image and facts for the agent's long-term memory.
+            # Create message_b containing only a text question about the remembered image.
             message_b = Message(
                 # Mark this message as coming from the human user.
                 role="user",
-                # Supply the image and text as two content items in the same user message.
+                # Supply text only; this new session must rely on shared file-based memory.
                 contents=[
 
                     # Answer the question from the saved memory.
@@ -171,26 +185,24 @@ async def main() -> None:
                 ],
             )
 
+            # Display the second prompt before waiting for the model response.
+            print_session_text("B", "Prompt", message_b.text)
             # Send the message through session B; the model may call file_memory_write. This call may incur cost.
             response_b = await agent.run(message_b, session=session_b)
 
-            # Print a label so the first response is easy to distinguish in the terminal.
-            print("---------- Session B Response ---------- ")
-            # Print only the first response text, not credentials or request metadata.
-            print(response_b.text)
-            # Print a closing label for the first response block.
-            print("---------- End of Session B Response ---------- ")
+            # Display the second response using the same colored layout.
+            print_session_text("B", "Response", response_b.text)
 
 
             # Session C: the third conversation, where the user expects the agent to remember previous facts.
             # Create session_c, a fresh in-process session with no earlier conversation turns.
             session_c=agent.create_session()
 
-            # Create message_a containing an image and facts for the agent's long-term memory.
+            # Create message_c containing a text clue about the remembered character.
             message_c = Message(
                 # Mark this message as coming from the human user.
                 role="user",
-                # Supply the image and text as two content items in the same user message.
+                # Supply the clue as text without sending the image again.
                 contents=[
 
                     # Answer the question from the saved memory.
@@ -198,25 +210,23 @@ async def main() -> None:
                 ],
             )
 
+            # Display the third prompt before waiting for the model response.
+            print_session_text("C", "Prompt", message_c.text)
             # Send the message through session C; the model may call file_memory_write. This call may incur cost.
             response_c = await agent.run(message_c, session=session_c)
 
-            # Print a label so the first response is easy to distinguish in the terminal.
-            print("---------- Session C Response ---------- ")
-            # Print only the first response text, not credentials or request metadata.
-            print(response_c.text)
-            # Print a closing label for the first response block.
-            print("---------- End of Session C Response ---------- ")
+            # Display the third response using the same colored layout.
+            print_session_text("C", "Response", response_c.text)
 
             # Session D: the fourth conversation, where the user expects the agent to remember previous facts.
-            # Create session_c, a fresh in-process session with no earlier conversation turns.
+            # Create session_d, a fresh in-process session with no earlier conversation turns.
             session_d=agent.create_session()
 
-            # Create message_a containing an image and facts for the agent's long-term memory.
+            # Create message_d containing a text question asking for the character's name.
             message_d = Message(
                 # Mark this message as coming from the human user.
                 role="user",
-                # Supply the image and text as two content items in the same user message.
+                # Supply text only so the answer depends on durable memory, not image history.
                 contents=[
 
                     # Answer the question from the saved memory.
@@ -224,15 +234,13 @@ async def main() -> None:
                 ],
             )
 
-            # Send the message through session C; the model may call file_memory_write. This call may incur cost.
+            # Display the fourth prompt before waiting for the model response.
+            print_session_text("D", "Prompt", message_d.text)
+            # Send the message through session D; the model may call file_memory_write. This call may incur cost.
             response_d = await agent.run(message_d, session=session_d)
 
-            # Print a label so the first response is easy to distinguish in the terminal.
-            print("---------- Session D Response ---------- ")
-            # Print only the first response text, not credentials or request metadata.
-            print(response_d.text)
-            # Print a closing label for the first response block.
-            print("---------- End of Session D Response ---------- ")
+            # Display the fourth response using the same colored layout.
+            print_session_text("D", "Response", response_d.text)
 
 
 # __name__ is '__main__' when launched directly, not when imported by tests.
